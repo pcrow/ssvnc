@@ -14,8 +14,10 @@ ssvnc (1.0.24-1) unstable; urgency=low
   * Promote stunnel4 from Recommends to Depends (Closes: #553411), depend
     directly on openssl, depend on tk instead of tk8.4, and tweak java
     recommendations.
+  * Add README.source.
+  * Bump Standards-Version to 3.8.3.
 
- -- Magnus Holmgren <holmgren@debian.org>  Sat, 31 Oct 2009 19:44:09 +0100
+ -- Magnus Holmgren <holmgren@debian.org>  Sat, 31 Oct 2009 20:56:27 +0100
 
 ssvnc (1.0.23-1) unstable; urgency=low
 
