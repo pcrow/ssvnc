@@ -8,8 +8,9 @@ ssvnc (1.0.24-1) unstable; urgency=low
   * ultraftp_path.dpach (new): Use hardcoded (and correct for this
     package) path to ultraftp.jar if SSVNC_ULTRA_FTP_JAR is unset, so that
     file transfers work even if ssvncviewer is executed directly.
+  * bashisms.dpatch (new): Fix most bashisms (all that matter).
 
- -- Magnus Holmgren <holmgren@debian.org>  Sat, 31 Oct 2009 16:25:59 +0100
+ -- Magnus Holmgren <holmgren@debian.org>  Sat, 31 Oct 2009 19:44:09 +0100
 
 ssvnc (1.0.23-1) unstable; urgency=low
 
