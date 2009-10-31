@@ -5,6 +5,9 @@ ssvnc (1.0.24-1) unstable; urgency=low
       tcl interpreter.
   * confusing_-h.dpatch (new): Improve upstream's handling of -help a bit
     (Closes: 544250).
+  * ultraftp_path.dpach (new): Use hardcoded (and correct for this
+    package) path to ultraftp.jar if SSVNC_ULTRA_FTP_JAR is unset, so that
+    file transfers work even if ssvncviewer is executed directly.
 
  -- Magnus Holmgren <holmgren@debian.org>  Sat, 31 Oct 2009 16:25:59 +0100
 
