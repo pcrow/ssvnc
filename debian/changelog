@@ -9,6 +9,8 @@ ssvnc (1.0.24-1) unstable; urgency=low
     package) path to ultraftp.jar if SSVNC_ULTRA_FTP_JAR is unset, so that
     file transfers work even if ssvncviewer is executed directly.
   * bashisms.dpatch (new): Fix most bashisms (all that matter).
+  * Drop no_openssl.dpatch and build ultravnc_dsm_helper; OpenSSL
+    exception has been granted.
 
  -- Magnus Holmgren <holmgren@debian.org>  Sat, 31 Oct 2009 19:44:09 +0100
 
