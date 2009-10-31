@@ -1,0 +1,37 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## confusing_-h.dpatch by  <holmgren@debian.org>
+##
+## DP: Improve handling of -h[e[l[p]]]
+
+@DPATCH@
+diff -urNad trunk~/scripts/sshvnc trunk/scripts/sshvnc
+--- trunk~/scripts/sshvnc	2007-08-24 03:24:14.000000000 +0200
++++ trunk/scripts/sshvnc	2009-10-31 16:14:11.000000000 +0100
+@@ -4,4 +4,4 @@
+ # 
+ PATH=`dirname "$0"`:$PATH; export PATH
+ SSVNC_SSH_ONLY=1; export SSVNC_SSH_ONLY
+-exec ssvnc -ssh "$@"
++exec ssvnc "$@"
+diff -urNad trunk~/scripts/ssvnc trunk/scripts/ssvnc
+--- trunk~/scripts/ssvnc	2009-10-25 15:15:48.000000000 +0100
++++ trunk/scripts/ssvnc	2009-10-31 16:04:48.000000000 +0100
+@@ -8,7 +8,8 @@
+ #
+ # See ssvnc_cmd for details.
+ #
+-if [ "X$1" = "X-help" -o "X$1" = "X-h" ]; then
++helpflag="-help"
++if [ ${#1} -gt 1 -a "$1${helpflag##$1}" = $helpflag ]; then
+ 	cat << END
+ ssvnc - a GUI wrapper for SSL and SSH VNC connections.
+ 
+diff -urNad trunk~/scripts/tsvnc trunk/scripts/tsvnc
+--- trunk~/scripts/tsvnc	2007-08-24 18:18:12.000000000 +0200
++++ trunk/scripts/tsvnc	2009-10-31 16:13:45.000000000 +0100
+@@ -4,4 +4,4 @@
+ # 
+ PATH=`dirname "$0"`:$PATH; export PATH
+ SSVNC_TS_ONLY=1; export SSVNC_TS_ONLY
+-exec ssvnc -ts "$@"
++exec ssvnc "$@"

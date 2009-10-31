@@ -42,7 +42,7 @@ install: build
 	dh_testroot
 	dh_prep
 
-	$(MAKE) ROOT=$(DESTDIR) PREFIX=/usr MANDIR=share/man/man1 install
+	$(MAKE) ROOT=$(DESTDIR) PREFIX=/usr MANDIR=share/man install
 
 # Build architecture-independent files here.
 binary-indep:
