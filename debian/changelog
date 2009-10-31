@@ -11,6 +11,9 @@ ssvnc (1.0.24-1) unstable; urgency=low
   * bashisms.dpatch (new): Fix most bashisms (all that matter).
   * Drop no_openssl.dpatch and build ultravnc_dsm_helper; OpenSSL
     exception has been granted.
+  * Promote stunnel4 from Recommends to Depends (Closes: #553411), depend
+    directly on openssl, depend on tk instead of tk8.4, and tweak java
+    recommendations.
 
  -- Magnus Holmgren <holmgren@debian.org>  Sat, 31 Oct 2009 19:44:09 +0100
 

@@ -11,9 +11,10 @@ Homepage: http://www.karlrunge.com/x11vnc/ssvnc.html
 
 Package: ssvnc
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, tk8.4,
- openssh-client, bind9-host | host, procps, psmisc, xterm
-Recommends: stunnel4, openjdk-6-jre | java2-runtime
+Depends: ${shlibs:Depends}, ${misc:Depends}, tk,
+ openssh-client, bind9-host | host, procps, psmisc, xterm,
+ stunnel4, openssl
+Recommends: default-jre | java5-runtime
 Description: Enhanced TightVNC viewer with SSL/SSH tunnel helper
  VNC stands for Virtual Network Computing. It is, in essence, a remote
  display system which allows you to view a computing `desktop'
