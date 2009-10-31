@@ -1,0 +1,5 @@
+ssvnc (1.0.23-1) unstable; urgency=low
+
+  * Initial release (Closes: #504134).
+
+ -- Magnus Holmgren <holmgren@debian.org>  Sat, 01 Aug 2009 19:31:25 +0200
