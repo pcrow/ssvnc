@@ -1,3 +1,10 @@
+ssvnc (1.0.25-1) unstable; urgency=low
+
+  * New upstream release.
+  * confusing_-h.dpatch and bashisms.dpatch: adjusted.
+
+ -- Magnus Holmgren <holmgren@debian.org>  Sat, 06 Feb 2010 20:45:04 +0100
+
 ssvnc (1.0.24-1) unstable; urgency=low
 
   * New upstream release.
