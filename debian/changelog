@@ -1,8 +1,10 @@
 ssvnc (1.0.27-1) unstable; urgency=low
 
   * New upstream release.
+  * bashisms.dpatch: Don't try to fix all bashisms; instead change /bin/sh
+    to /bin/bash and depend on bash, which is small in this context.
 
- -- Magnus Holmgren <holmgren@debian.org>  Sat, 22 May 2010 23:40:43 +0200
+ -- Magnus Holmgren <holmgren@debian.org>  Sun, 23 May 2010 19:07:52 +0200
 
 ssvnc (1.0.25-1) unstable; urgency=low
 

@@ -11,7 +11,7 @@ Homepage: http://www.karlrunge.com/x11vnc/ssvnc.html
 
 Package: ssvnc
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, tk,
+Depends: ${shlibs:Depends}, ${misc:Depends}, tk, bash,
  openssh-client, bind9-host | host, procps, psmisc, xterm,
  stunnel4, openssl
 Recommends: default-jre | java5-runtime
