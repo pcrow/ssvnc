@@ -1,3 +1,9 @@
+ssvnc (1.0.27-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Magnus Holmgren <holmgren@debian.org>  Sat, 22 May 2010 23:40:43 +0200
+
 ssvnc (1.0.25-1) unstable; urgency=low
 
   * New upstream release.
