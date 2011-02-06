@@ -7,8 +7,10 @@ ssvnc (1.0.28-1) unstable; urgency=low
   * debian/copyright: Update years of copyright; remove notice that the
     UltraVNC DSM helper module is not included (which it is since
     1.0.24-1).
+  * Remove redundant bash dependency; bash isn't going to be non-essential
+    any time soon.
 
- -- Magnus Holmgren <holmgren@debian.org>  Sun, 06 Feb 2011 21:30:34 +0100
+ -- Magnus Holmgren <holmgren@debian.org>  Sun, 06 Feb 2011 23:05:45 +0100
 
 ssvnc (1.0.27-1) unstable; urgency=low
 
