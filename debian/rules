@@ -11,8 +11,6 @@
 
 DESTDIR=$(CURDIR)/debian/ssvnc
 
-include /usr/share/dpatch/dpatch.make
-
 configure: configure-stamp
 configure-stamp:
 	dh_testdir
@@ -20,14 +18,14 @@ configure-stamp:
 	touch configure-stamp
 
 build: build-stamp
-build-stamp: configure-stamp patch-stamp
+build-stamp: configure-stamp
 	dh_testdir
 
 	$(MAKE) all
 
 	touch $@
 
-clean: configure-stamp unpatch
+clean: configure-stamp
 	dh_testdir
 	dh_testroot
 	rm -f build-stamp configure-stamp
@@ -43,6 +41,8 @@ install: build
 	dh_prep
 
 	$(MAKE) ROOT=$(DESTDIR) PREFIX=/usr MANDIR=share/man install
+	sed -ri -e 's#/bin/sh#/bin/bash#g' \
+	 $(addprefix $(DESTDIR)/usr/lib/ssvnc/,ssvnc ssvnc_cmd util/ss_vncviewer util/ssvnc.tcl)
 
 # Build architecture-independent files here.
 binary-indep:

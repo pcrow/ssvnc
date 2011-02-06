@@ -1,9 +1,9 @@
-#! /bin/sh /usr/share/dpatch/dpatch-run
-## confusing_-h.dpatch by  <holmgren@debian.org>
-##
-## DP: Improve handling of -h[e[l[p]]]
+Description: Improve handling of -h[e[l[p]]]
+ Catches -he and -hel as well, instead of letting wish print its usage 
+ message (that sounds like an error message).
+Author: Magnus Holmgren <holmgren@debian.org>
+Bug-Debian: http://bugs.debian.org/544250
 
-@DPATCH@
 diff -urNad trunk~/scripts/ssvnc trunk/scripts/ssvnc
 --- trunk~/scripts/ssvnc	2009-12-27 21:38:58.000000000 +0100
 +++ trunk/scripts/ssvnc	2010-02-06 20:38:41.000000000 +0100

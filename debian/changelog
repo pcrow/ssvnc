@@ -2,8 +2,10 @@ ssvnc (1.0.28-1) unstable; urgency=low
 
   * New upstream release (Closes: #592873, "Connection from UVNC
     Single-Click does not start vncviewer when -acceptpopups is set").
+  * Convert to source format 3.0 (quilt), changing /bin/sh into /bin/bash
+    (see below) in the install target instead.
 
- -- Magnus Holmgren <holmgren@debian.org>  Sun, 06 Feb 2011 19:08:26 +0100
+ -- Magnus Holmgren <holmgren@debian.org>  Sun, 06 Feb 2011 21:23:07 +0100
 
 ssvnc (1.0.27-1) unstable; urgency=low
 
