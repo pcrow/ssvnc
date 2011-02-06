@@ -9,7 +9,7 @@ Upstream Author:
 
 Copyright:
 
-    Copyright © 2006-2008 Karl J. Runge
+    Copyright © 2006-2010 Karl J. Runge
     TightVNC Copyright © 2001-2003 Constantin Kaplinsky
     VNC Copyright © AT&T Laboratories Cambridge, 
         © 1994-2000 Olivetti Research Ltd/AT&T Laboratories Cambridge.
@@ -105,8 +105,5 @@ On Debian systems, the complete text of the GNU General
 Public License can be found in `/usr/share/common-licenses/GPL-2' instead.
 
 
-The Debian packaging is © 2008, Magnus Holmgren <holmgren@debian.org> and
-is licensed under the GPL, see above.
-
-Due to license conflicts, the UltraVNC DSM helper module is not
-included in the binary package.
+The Debian packaging is © 2008-2011, Magnus Holmgren
+<holmgren@debian.org> and is licensed under the GPL, see above.
