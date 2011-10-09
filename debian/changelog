@@ -2,6 +2,8 @@ ssvnc (1.0.29-1) unstable; urgency=low
 
   * New upstream release.
   * Install ReleaseNotes as upstream changelog file.
+  * Simply build-depend on libjpeg-dev instead of libjpeg62-dev |
+    libjpeg-dev (Closes: #644808).
 
  -- Magnus Holmgren <holmgren@debian.org>  Sun, 09 Oct 2011 22:05:45 +0200
 

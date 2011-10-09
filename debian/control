@@ -4,7 +4,7 @@ Priority: extra
 Maintainer: Magnus Holmgren <holmgren@debian.org>
 Build-Depends: debhelper (>= 7), xutils-dev, libxaw7-dev,
  libxmu-dev, libxext-dev, libxt-dev, libsm-dev, libice-dev,
- libjpeg62-dev | libjpeg-dev, zlib1g-dev | libz-dev,
+ libjpeg-dev, zlib1g-dev | libz-dev,
  default-jdk, libssl-dev
 Standards-Version: 3.9.1
 Homepage: http://www.karlrunge.com/x11vnc/ssvnc.html
