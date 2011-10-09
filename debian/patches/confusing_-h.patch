@@ -4,9 +4,8 @@ Description: Improve handling of -h[e[l[p]]]
 Author: Magnus Holmgren <holmgren@debian.org>
 Bug-Debian: http://bugs.debian.org/544250
 
-diff -urNad trunk~/scripts/ssvnc trunk/scripts/ssvnc
---- trunk~/scripts/ssvnc	2009-12-27 21:38:58.000000000 +0100
-+++ trunk/scripts/ssvnc	2010-02-06 20:38:41.000000000 +0100
+--- a/scripts/ssvnc
++++ b/scripts/ssvnc
 @@ -8,7 +8,8 @@
  #
  # See ssvnc_cmd for details.
@@ -17,7 +16,7 @@ diff -urNad trunk~/scripts/ssvnc trunk/scripts/ssvnc
  	cat << END
  ssvnc - a GUI wrapper for SSL and SSH VNC connections.
  
-@@ -106,7 +107,7 @@
+@@ -111,7 +112,7 @@ END
  	exit 0
  fi
  if [ "X$1" = "X-ssh" ]; then
@@ -26,7 +25,7 @@ diff -urNad trunk~/scripts/ssvnc trunk/scripts/ssvnc
  		cat << END
  sshvnc - a GUI wrapper for SSH VNC connections.
  
-@@ -124,7 +125,7 @@
+@@ -129,7 +130,7 @@ END
  fi
  
  if [ "X$1" = "X-ts" -o "X$1" = "X-tso" ]; then

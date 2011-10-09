@@ -2,10 +2,9 @@ Author: Magnus Holmgren <holmgren@debian.org>
 Description: Use hardcoded (and correct for the Debian package) path to ultraftp.jar
  if SSVNC_ULTRA_FTP_JAR is unset.
 
-diff -urNad trunk~/vnc_unixsrc/vncviewer/argsresources.c trunk/vnc_unixsrc/vncviewer/argsresources.c
---- trunk~/vnc_unixsrc/vncviewer/argsresources.c	2009-10-27 04:26:12.000000000 +0100
-+++ trunk/vnc_unixsrc/vncviewer/argsresources.c	2009-10-31 15:22:46.000000000 +0100
-@@ -1624,35 +1624,8 @@
+--- a/vnc_unixsrc/vncviewer/argsresources.c
++++ b/vnc_unixsrc/vncviewer/argsresources.c
+@@ -1702,35 +1702,8 @@ GetArgsAndResources(int argc, char **arg
  		appData.useBGR233 = 0;
  	}
  
