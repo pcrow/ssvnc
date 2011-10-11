@@ -4,8 +4,10 @@ ssvnc (1.0.29-1) unstable; urgency=low
   * Install ReleaseNotes as upstream changelog file.
   * Simply build-depend on libjpeg-dev instead of libjpeg62-dev |
     libjpeg-dev (Closes: #644808).
+  * Install a symlink in /usr/bin instead of including the main vncviewer
+    binary twice in the package.
 
- -- Magnus Holmgren <holmgren@debian.org>  Sun, 09 Oct 2011 22:05:45 +0200
+ -- Magnus Holmgren <holmgren@debian.org>  Tue, 11 Oct 2011 21:03:10 +0200
 
 ssvnc (1.0.28-1) unstable; urgency=low
 
