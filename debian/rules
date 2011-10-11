@@ -17,13 +17,17 @@ configure-stamp:
 	$(MAKE) config
 	touch configure-stamp
 
-build: build-stamp
+build-indep:
+
+build-arch: build-stamp
 build-stamp: configure-stamp
 	dh_testdir
 
 	$(MAKE) all
 
 	touch $@
+
+build: build-arch build-indep
 
 clean: configure-stamp
 	dh_testdir
@@ -67,4 +71,4 @@ binary-arch: build install
 	dh_builddeb
 
 binary: binary-indep binary-arch
-.PHONY: build clean binary-indep binary-arch binary install configure
+.PHONY: build-indep build-arch build clean binary-indep binary-arch binary install configure

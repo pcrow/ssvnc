@@ -6,8 +6,9 @@ ssvnc (1.0.29-1) unstable; urgency=low
     libjpeg-dev (Closes: #644808).
   * Install a symlink in /usr/bin instead of including the main vncviewer
     binary twice in the package.
+  * Add build-arch and build-indep targets to debian/rules.
 
- -- Magnus Holmgren <holmgren@debian.org>  Tue, 11 Oct 2011 21:03:10 +0200
+ -- Magnus Holmgren <holmgren@debian.org>  Tue, 11 Oct 2011 21:04:08 +0200
 
 ssvnc (1.0.28-1) unstable; urgency=low
 
