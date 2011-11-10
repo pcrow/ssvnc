@@ -9,8 +9,9 @@ ssvnc (1.0.29-1) unstable; urgency=low
   * Add build-arch and build-indep targets to debian/rules.
   * nostrip.patch: Remove strip command from the Makefile, allowing
     DEB_BUILD_OPTONS=nostrip to work.
+  * Get CFLAGS and LDFLAGS from dpkg-buildflags.
 
- -- Magnus Holmgren <holmgren@debian.org>  Thu, 20 Oct 2011 22:52:59 +0200
+ -- Magnus Holmgren <holmgren@debian.org>  Thu, 10 Nov 2011 21:32:11 +0100
 
 ssvnc (1.0.28-1) unstable; urgency=low
 
