@@ -1,3 +1,8 @@
+Author: Magnus Holmgren <holmgren@debian.org>
+Description: Pass CFLAGS and LDFLAGS to xmkmf-generated Makefiles
+ Pass CFLAGS and LDFLAGS through via ./Makefile as
+ CDEBUGFLAGS and LOCAL_LDFLAGS to vnc_unixsrc/*/Makefile
+
 --- a/Makefile
 +++ b/Makefile
 @@ -53,8 +53,8 @@ config:
