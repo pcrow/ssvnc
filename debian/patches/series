@@ -1,3 +1,4 @@
 confusing_-h.patch
 ultraftp_path.patch
+buildflags.patch
 nostrip.patch

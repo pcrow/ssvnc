@@ -10,8 +10,12 @@ ssvnc (1.0.29-1) unstable; urgency=low
   * nostrip.patch: Remove strip command from the Makefile, allowing
     DEB_BUILD_OPTONS=nostrip to work.
   * Get CFLAGS and LDFLAGS from dpkg-buildflags.
+  * buildflags.patch: Pass CFLAGS and LDFLAGS through via ./Makefile as
+    CDEBUGFLAGS and LOCAL_LDFLAGS to vnc_unixsrc/*/Makefile. This results
+    in -fno-strict-aliasing (added by xmkmf by default) being dropped, but
+    that doesn't seem to cause any problems.
 
- -- Magnus Holmgren <holmgren@debian.org>  Thu, 10 Nov 2011 21:32:11 +0100
+ -- Magnus Holmgren <holmgren@debian.org>  Thu, 10 Nov 2011 21:54:02 +0100
 
 ssvnc (1.0.28-1) unstable; urgency=low
 

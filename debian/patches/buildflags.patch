@@ -1,0 +1,13 @@
+--- a/Makefile
++++ b/Makefile
+@@ -53,8 +53,8 @@ config:
+ 	@echo Now run: "'make all'"
+ 
+ all:
+-	cd $(VSRC)/libvncauth; $(MAKE)
+-	cd $(VSRC)/vncviewer;  $(MAKE)
++	cd $(VSRC)/libvncauth; $(MAKE) CDEBUGFLAGS="$(CFLAGS)" LOCAL_LDFLAGS="$(LDFLAGS)"
++	cd $(VSRC)/vncviewer;  $(MAKE) CDEBUGFLAGS="$(CFLAGS)" LOCAL_LDFLAGS="$(LDFLAGS)"
+ 	if [ "X$(JSRC)" != "X" ]; then cd $(JSRC); $(MAKE); fi
+ 	cd $(PSRC); $(MAKE)
+ 
