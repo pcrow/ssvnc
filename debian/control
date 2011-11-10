@@ -6,7 +6,7 @@ Build-Depends: dpkg-dev (>= 1.15.7), debhelper (>= 7), xutils-dev, libxaw7-dev,
  libxmu-dev, libxext-dev, libxt-dev, libsm-dev, libice-dev,
  libjpeg-dev, zlib1g-dev | libz-dev,
  default-jdk, libssl-dev
-Standards-Version: 3.9.1
+Standards-Version: 3.9.2
 Homepage: http://www.karlrunge.com/x11vnc/ssvnc.html
 
 Package: ssvnc
