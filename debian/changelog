@@ -1,3 +1,10 @@
+ssvnc (1.0.29-2) unstable; urgency=low
+
+  * Also get CPPFLAGS from dpkg-buildflags. Pass it as EXTRA_DEFINES to
+    vnc_unixsrc/*/Makefile.
+
+ -- Magnus Holmgren <holmgren@debian.org>  Fri, 11 Nov 2011 08:11:09 +0100
+
 ssvnc (1.0.29-1) unstable; urgency=low
 
   * New upstream release.
