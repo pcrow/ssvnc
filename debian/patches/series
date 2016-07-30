@@ -4,3 +4,4 @@ buildflags.patch
 openssl1.1.patch
 nostrip.patch
 format-security.patch
+auto-scale.patch
