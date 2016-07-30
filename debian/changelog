@@ -7,8 +7,10 @@ ssvnc (1.0.29-3) unstable; urgency=low
     #1312966). In addition to the command-line option "-scale auto"
     creating a 1×1 window, rescaling when resizing the window didn't
     happen, at least not when Caps Lock or other modifiers were active.
+  * samemachine_ipv6_overflow.patch (new): Fix stack overflow when
+    connecting over IPv6, caused by non-IPv6-aware code (Closes: #774622).
 
- -- Magnus Holmgren <holmgren@debian.org>  Sat, 30 Jul 2016 19:39:36 +0200
+ -- Magnus Holmgren <holmgren@debian.org>  Sat, 30 Jul 2016 22:25:20 +0200
 
 ssvnc (1.0.29-2) unstable; urgency=low
 

@@ -5,3 +5,4 @@ openssl1.1.patch
 nostrip.patch
 format-security.patch
 auto-scale.patch
+samemachine_ip6_overflow.patch
