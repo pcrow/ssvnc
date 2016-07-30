@@ -9,8 +9,9 @@ ssvnc (1.0.29-3) unstable; urgency=low
     happen, at least not when Caps Lock or other modifiers were active.
   * samemachine_ipv6_overflow.patch (new): Fix stack overflow when
     connecting over IPv6, caused by non-IPv6-aware code (Closes: #774622).
+  * nostrip.patch: Don't strip vncstorepw or ultravnc_dsm_helper either.
 
- -- Magnus Holmgren <holmgren@debian.org>  Sat, 30 Jul 2016 22:25:20 +0200
+ -- Magnus Holmgren <holmgren@debian.org>  Sat, 30 Jul 2016 22:42:05 +0200
 
 ssvnc (1.0.29-2) unstable; urgency=low
 
