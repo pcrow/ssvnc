@@ -12,8 +12,9 @@ ssvnc (1.0.29-3) unstable; urgency=low
   * nostrip.patch: Don't strip vncstorepw or ultravnc_dsm_helper either.
   * buildflags.patch: Also pass flags to vncstorepw/Makefile and patch
     that to use them.
+  * Bump Standards-Version to 3.9.8.
 
- -- Magnus Holmgren <holmgren@debian.org>  Sat, 30 Jul 2016 23:09:09 +0200
+ -- Magnus Holmgren <holmgren@debian.org>  Sat, 30 Jul 2016 23:09:44 +0200
 
 ssvnc (1.0.29-2) unstable; urgency=low
 
