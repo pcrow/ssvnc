@@ -62,10 +62,10 @@
  		}
  
 -		if (ivec_size < Cipher->iv_len && !securevnc) {
-+		if (ivec_size < EVP_CIPHER_CTX_iv_length(Cipher) && !securevnc) {
++		if (ivec_size < EVP_CIPHER_iv_length(Cipher) && !securevnc) {
  			fprintf(stderr, "%s: %s - WARNING: short IV %d < %d\n",
 -			    prog, encstr, ivec_size, Cipher->iv_len);
-+			    prog, encstr, ivec_size, EVP_CIPHER_CTX_iv_length(Cipher));
++			    prog, encstr, ivec_size, EVP_CIPHER_iv_length(Cipher));
  		}
  
  		/* make the hashed value and place in keystr */
