@@ -5,7 +5,7 @@ Description: Pass CFLAGS and LDFLAGS to xmkmf-generated Makefiles
 
 --- a/Makefile
 +++ b/Makefile
-@@ -53,8 +53,8 @@ config:
+@@ -53,10 +53,10 @@ config:
  	@echo Now run: "'make all'"
  
  all:
@@ -14,5 +14,19 @@ Description: Pass CFLAGS and LDFLAGS to xmkmf-generated Makefiles
 +	cd $(VSRC)/libvncauth; $(MAKE) EXTRA_DEFINES="$(CPPFLAGS)" CDEBUGFLAGS="$(CFLAGS)" LOCAL_LDFLAGS="$(LDFLAGS)"
 +	cd $(VSRC)/vncviewer;  $(MAKE) EXTRA_DEFINES="$(CPPFLAGS)" CDEBUGFLAGS="$(CFLAGS)" LOCAL_LDFLAGS="$(LDFLAGS)"
  	if [ "X$(JSRC)" != "X" ]; then cd $(JSRC); $(MAKE); fi
- 	cd $(PSRC); $(MAKE)
+-	cd $(PSRC); $(MAKE)
++	cd $(PSRC); $(MAKE) CPPFLAGS="$(CPPFLAGS)" CFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)"
+ 
+ clean:
+ 	cd $(VSRC)/libvncauth; $(MAKE) clean
+--- a/vncstorepw/Makefile
++++ b/vncstorepw/Makefile
+@@ -8,7 +8,7 @@ LIMACC = lim_accept.so
+ ULTDSM = ultravnc_dsm_helper
+ 
+ # gcc must be used:
+-CC = gcc
++CC = gcc $(CPPFLAGS) $(CFLAGS) $(LDFLAGS)
+ 
+ all: $(CMD) $(UNWRAP) $(LIMACC) $(ULTDSM)
  

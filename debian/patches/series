@@ -1,7 +1,7 @@
 confusing_-h.patch
 ultraftp_path.patch
-buildflags.patch
 nostrip.patch
+buildflags.patch
 format-security.patch
 openssl1.1.patch
 auto-scale.patch
