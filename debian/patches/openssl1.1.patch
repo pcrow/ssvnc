@@ -92,7 +92,7 @@
  
  static char *rsa_md5_sum(unsigned char* rsabuf) {
 -	EVP_MD_CTX md;
-+    EVP_MD_CTX *md = EVP_MD_CTX_new();
++	EVP_MD_CTX *md = EVP_MD_CTX_create();
  	char digest[EVP_MAX_MD_SIZE], tmp[16];
  	char md5str[EVP_MAX_MD_SIZE * 8];
  	unsigned int i, size = 0;
@@ -110,7 +110,7 @@
  		sprintf(tmp, "%02x", (int) uc);
  		strcat(md5str, tmp);
  	}
-+	EVP_MD_CTX_free(md);
++	EVP_MD_CTX_destroy(md);
  	return strdup(md5str);
  }
  
@@ -163,7 +163,7 @@
  	if (client_auth_req && client_auth) {
  		RSA *client_rsa = load_client_auth(client_auth);
 -		EVP_MD_CTX dctx;
-+		EVP_MD_CTX *dctx = EVP_MD_CTX_new();
++		EVP_MD_CTX *dctx = EVP_MD_CTX_create();
  		unsigned char digest[EVP_MAX_MD_SIZE], *signature;
  		unsigned int ndig = 0, nsig = 0;
  
@@ -193,7 +193,7 @@
  		}
 -		EVP_DigestFinal(&dctx, (unsigned char *)digest, &ndig);
 +		EVP_DigestFinal(dctx, (unsigned char *)digest, &ndig);
-+		EVP_MD_CTX_free(dctx);
++		EVP_MD_CTX_destroy(dctx);
  
  		signature = (unsigned char *) calloc(RSA_size(client_rsa), 1);
  		RSA_sign(NID_sha1, digest, ndig, signature, &nsig, client_rsa);
