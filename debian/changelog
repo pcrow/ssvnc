@@ -1,8 +1,9 @@
 ssvnc (1.0.29-4) unstable; urgency=low
 
   * default-jdk-headless is enough to build.
+  * Compile java with -source 1.6 -target 1.6 (Closes: #874004).
 
- -- Magnus Holmgren <holmgren@debian.org>  Sun, 24 Jun 2018 19:03:15 +0200
+ -- Magnus Holmgren <holmgren@debian.org>  Sun, 24 Jun 2018 19:34:31 +0200
 
 ssvnc (1.0.29-3) unstable; urgency=low
 

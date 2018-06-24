@@ -27,7 +27,7 @@ build-arch: build-stamp
 build-stamp: configure-stamp
 	dh_testdir
 
-	$(MAKE) all
+	$(MAKE) all JC_ARGS="-target 1.6 -source 1.6"
 
 	touch $@
 
