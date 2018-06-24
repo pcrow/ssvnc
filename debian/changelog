@@ -3,8 +3,9 @@ ssvnc (1.0.29-4) unstable; urgency=low
   * default-jdk-headless is enough to build.
   * Compile java with -source 1.6 -target 1.6 (Closes: #874004).
   * Replace priority extra with optional.
+  * Switch to Debhelper compat level 10.
 
- -- Magnus Holmgren <holmgren@debian.org>  Sun, 24 Jun 2018 19:36:16 +0200
+ -- Magnus Holmgren <holmgren@debian.org>  Sun, 24 Jun 2018 19:39:53 +0200
 
 ssvnc (1.0.29-3) unstable; urgency=low
 
