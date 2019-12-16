@@ -7,8 +7,9 @@ ssvnc (1.0.29-5) unstable; urgency=high
     - CVE-2018-20021: CWE-835: Infinite loop vulnerability in VNC client code.
     - CVE-2018-20022: CWE-665: Improper Initialization vulnerability.
     - CVE-2018-20024: null pointer dereference that can result DoS.
+  * Bump Standards-Version to 4.4.1.
 
- -- Magnus Holmgren <holmgren@debian.org>  Mon, 16 Dec 2019 19:07:55 +0100
+ -- Magnus Holmgren <holmgren@debian.org>  Mon, 16 Dec 2019 19:46:31 +0100
 
 ssvnc (1.0.29-4) unstable; urgency=low
 
