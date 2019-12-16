@@ -1,3 +1,15 @@
+ssvnc (1.0.29-5) unstable; urgency=high
+
+  * Porting of libvncclient security patches by the jessie LTS team
+    (Closes: #945827):
+    - CVE-2018-20020: heap out-of-bound write vulnerability inside structure
+      in VNC client code.
+    - CVE-2018-20021: CWE-835: Infinite loop vulnerability in VNC client code.
+    - CVE-2018-20022: CWE-665: Improper Initialization vulnerability.
+    - CVE-2018-20024: null pointer dereference that can result DoS.
+
+ -- Magnus Holmgren <holmgren@debian.org>  Mon, 16 Dec 2019 19:07:55 +0100
+
 ssvnc (1.0.29-4) unstable; urgency=low
 
   * default-jdk-headless is enough to build.

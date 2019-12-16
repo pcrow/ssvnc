@@ -6,3 +6,7 @@ format-security.patch
 openssl1.1.patch
 auto-scale.patch
 samemachine_ip6_overflow.patch
+libvncclient_CVE-2018-20020.patch
+libvncclient_CVE-2018-20021.patch
+libvncclient_CVE-2018-20022.patch
+libvncclient_CVE-2018-20024.patch
