@@ -6,8 +6,9 @@ ssvnc (1.0.29-6) unstable; urgency=low
   * sendclipboard-fix.patch: Make sure that -sendclipboard actually uses
     the clipboard (Closes: #841854). Thanks to OmegaPhil
     <OmegaPhil@startmail.com>.
+  * Bump Standards-Version to 4.6.0.
 
- -- Magnus Holmgren <holmgren@debian.org>  Thu, 06 Jan 2022 21:33:13 +0100
+ -- Magnus Holmgren <holmgren@debian.org>  Thu, 06 Jan 2022 21:56:37 +0100
 
 ssvnc (1.0.29-5) unstable; urgency=high
 
