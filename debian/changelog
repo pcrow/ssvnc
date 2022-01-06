@@ -3,8 +3,11 @@ ssvnc (1.0.29-6) unstable; urgency=low
   * no-mkmf.patch: Replace Imake-generated Makefiles with simple ones in
     preparation for the removal of xmkkf (Closes: #888009, #997646).
     Thanks to Helmut Grohne <helmut@subdivi.de>.
+  * sendclipboard-fix.patch: Make sure that -sendclipboard actually uses
+    the clipboard (Closes: #841854). Thanks to OmegaPhil
+    <OmegaPhil@startmail.com>.
 
- -- Magnus Holmgren <holmgren@debian.org>  Thu, 06 Jan 2022 20:54:56 +0100
+ -- Magnus Holmgren <holmgren@debian.org>  Thu, 06 Jan 2022 21:33:13 +0100
 
 ssvnc (1.0.29-5) unstable; urgency=high
 

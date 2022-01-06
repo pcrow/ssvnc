@@ -1,0 +1,28 @@
+Description: Make sure that -sendclipboard actually uses the clipboard
+Author: OmegaPhil <OmegaPhil@startmail.com>
+Bug-Debian: https://bugs.debian.org/841854
+
+diff --git a/vnc_unixsrc/vncviewer/selection.c b/vnc_unixsrc/vncviewer/selection.c
+index 48b0a98..beb6916 100644
+--- a/vnc_unixsrc/vncviewer/selection.c
++++ b/vnc_unixsrc/vncviewer/selection.c
+@@ -199,12 +199,18 @@ GetSelectionTimeCallback(Widget w, XtPointer clientData, Atom* selection,
+ 			 Atom* type, XtPointer value, unsigned long* length,
+ 			 int* format)
+ {
++	Atom sendsel = XA_PRIMARY;
++
++	if (appData.sendClipboard && clipboard_atom != None) {
++		sendsel = clipboard_atom;
++	}
++
+ 	if (value && *format == 32 && *length == 1) {
+ 		Time t = *(CARD32 *)value;
+ 
+ 		if (TIME_LATER(t, prevSelectionTime)) {
+ 			prevSelectionTime = t;
+-			XtGetSelectionValue(w, XA_PRIMARY, XA_STRING, GetSelectionCallback, NULL, CurrentTime);
++			XtGetSelectionValue(w, sendsel, XA_STRING, GetSelectionCallback, NULL, CurrentTime);
+ 		}
+ 	} else if (!getenv("VNCVIEWER_NO_CUTBUFFER")) {
+ 		if (TIME_LATER(cutBufferTime, prevSelectionTime)) {
