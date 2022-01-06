@@ -1,0 +1,88 @@
+Description: Replace Imake Makefiles with simple makefiles.
+Author: Helmut Grohne <helmut@subdivi.de>
+Bug-Debian: https://bugs.debian.org/888009
+
+Index: ssvnc-1.0.29/vnc_unixsrc/libvncauth/GNUmakefile
+===================================================================
+--- /dev/null
++++ ssvnc-1.0.29/vnc_unixsrc/libvncauth/GNUmakefile
+@@ -0,0 +1,14 @@
++MAINTAINER_CFLAGS += -I. -I../include
++RANLIB ?= ranlib
++
++%.o:%.c
++	$(CC) $(MAINTAINER_CFLAGS) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
++
++libvncauth.a:vncauth.o d3des.o
++	$(AR) cq $@ $^
++	$(RANLIB) $@
++vncauth.o:vncauth.c d3des.h ../include/vncauth.h
++d3des.o:d3des.c d3des.h
++
++clean:
++	rm -f libvncauth.a vncauth.o d3des.o
+Index: ssvnc-1.0.29/Makefile
+===================================================================
+--- ssvnc-1.0.29.orig/Makefile
++++ ssvnc-1.0.29/Makefile
+@@ -43,18 +43,14 @@
+ ARCHIVE = $(JSRC)/ultraftp.jar
+ 
+ config:
+-	sh -c 'type xmkmf'
+ 	if [ "X$(JSRC)" != "X" ]; then sh -c 'type javac'; fi
+ 	if [ "X$(JSRC)" != "X" ]; then sh -c 'type jar'; fi
+ 	@echo
+-	cd $(VSRC)/libvncauth; pwd; xmkmf
+-	cd $(VSRC)/vncviewer;  pwd; xmkmf
+-	@echo
+ 	@echo Now run: "'make all'"
+ 
+ all:
+-	cd $(VSRC)/libvncauth; $(MAKE) EXTRA_DEFINES="$(CPPFLAGS)" CDEBUGFLAGS="$(CFLAGS)" LOCAL_LDFLAGS="$(LDFLAGS)"
+-	cd $(VSRC)/vncviewer;  $(MAKE) EXTRA_DEFINES="$(CPPFLAGS)" CDEBUGFLAGS="$(CFLAGS)" LOCAL_LDFLAGS="$(LDFLAGS)"
++	$(MAKE) -C $(VSRC)/libvncauth
++	$(MAKE) -C $(VSRC)/vncviewer
+ 	if [ "X$(JSRC)" != "X" ]; then cd $(JSRC); $(MAKE); fi
+ 	cd $(PSRC); $(MAKE) CPPFLAGS="$(CPPFLAGS)" CFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)"
+ 
+Index: ssvnc-1.0.29/vnc_unixsrc/vncviewer/GNUmakefile
+===================================================================
+--- /dev/null
++++ ssvnc-1.0.29/vnc_unixsrc/vncviewer/GNUmakefile
+@@ -0,0 +1,35 @@
++MAINTAINER_CFLAGS += -I../include -I.
++
++ifneq ($(filter i%86-linux-gnu,$(shell $(CC) -dumpmachine)),)
++MAINTAINER_CFLAGS += -DMITSHM
++endif
++
++%.o:%.c
++	$(CC) $(MAINTAINER_CFLAGS) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
++
++SRCS = \
++  argsresources.c \
++  caps.c \
++  colour.c \
++  cursor.c \
++  desktop.c \
++  dialogs.c \
++  fullscreen.c \
++  listen.c \
++  misc.c \
++  popup.c \
++  rfbproto.c \
++  selection.c \
++  shm.c \
++  sockets.c \
++  tunnel.c \
++  vncviewer.c
++
++OBJS = $(SRCS:.c=.o)
++LIBS = -lXaw -lXmu -lXt -lXext -lX11 ../libvncauth/libvncauth.a -lz -ljpeg
++
++vncviewer:$(OBJS)
++	$(CC) $(MAINTAINER_CFLAGS) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
++
++clean:
++	rm -f vncviewer $(OBJS)

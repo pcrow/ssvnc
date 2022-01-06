@@ -10,3 +10,4 @@ libvncclient_CVE-2018-20020.patch
 libvncclient_CVE-2018-20021.patch
 libvncclient_CVE-2018-20022.patch
 libvncclient_CVE-2018-20024.patch
+no-xmkmf.patch
