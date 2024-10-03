@@ -9,6 +9,7 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
+include /usr/share/java/java_defaults.mk
 DESTDIR=$(CURDIR)/debian/ssvnc
 
 export CPPFLAGS := $(shell dpkg-buildflags --get CPPFLAGS)
@@ -27,7 +28,7 @@ build-arch: build-stamp
 build-stamp: configure-stamp
 	dh_testdir
 
-	$(MAKE) all JC_ARGS="-source 1.7 -target 1.7"
+	$(MAKE) all JC_ARGS="-source $(java_compat_level) -target $(java_compat_level)"
 
 	touch $@
 
@@ -39,7 +40,7 @@ clean: configure-stamp
 	rm -f build-stamp configure-stamp
 
 	$(MAKE) clean
-	rm vnc_unixsrc/*/Makefile
+	rm -f vnc_unixsrc/*/Makefile
 
 	dh_clean 
 

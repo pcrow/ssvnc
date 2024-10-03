@@ -1,3 +1,15 @@
+ssvnc (1.0.29-6.1) unstable; urgency=medium
+
+  * Non-maintainer upload.
+
+  [ Vladimir Petko ]
+  * d/rules: use java_compat_level variable provided by java-common
+    to adjust -source/-target level to the minimum required by
+    the default Java (Closes: #1053080).
+  * d/rules: force deletion of vnc_unixsrc/*/Makefile (Closes: #1047893).
+
+ -- Emmanuel Bourg <ebourg@apache.org>  Thu, 03 Oct 2024 12:39:25 +0200
+
 ssvnc (1.0.29-6) unstable; urgency=low
 
   * no-mkmf.patch: Replace Imake-generated Makefiles with simple ones in
