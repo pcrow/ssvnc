@@ -8,7 +8,7 @@ exec wish "$0" "$@"
 # ssvnc.tcl: gui wrapper to the programs in this
 # package. Also sets up service port forwarding.
 #
-set version 1.0.24
+set version 1.0.25
 
 set buck_zero $argv0
 
@@ -31,6 +31,15 @@ proc center_win {w} {
 	wm geometry $w +$x+$y
 	wm deiconify $w
 	update
+}
+
+proc small_height {} {
+	set H [winfo screenheight .]
+	if {$H < 700} {
+		return 1
+	} else {
+		return 0
+	}
 }
 
 proc mac_raise {} {
@@ -67,6 +76,9 @@ proc line_count {{str ""} {pad 0}} {
 proc scroll_text {fr {w 80} {h 35}} {
 	global help_font is_windows scroll_text_focus
 
+	if {$h == 35 && [small_height]} {
+		set h 28
+	}
 	catch {destroy $fr}
 	
 	frame $fr -bd 0
@@ -88,6 +100,9 @@ proc scroll_text {fr {w 80} {h 35}} {
 proc scroll_text_dismiss {fr {w 80} {h 35}} {
 	global help_font
 
+	if {$h == 35 && [small_height]} {
+		set h 28
+	}
 	scroll_text $fr $w $h
 
 	set up $fr
@@ -156,22 +171,23 @@ proc ts_help {} {
     
     Then click on "Connect".
 
-    Once the SSH is running (you may need to type a password in the
-    terminal window that pops up), the TightVNC Viewer (Or perhaps
-    Chicken-of-the-VNC on Mac OS X) will be automatically started directed
-    to the local port of the SSH tunnel which, in turn, encrypts and
-    redirects the connection to the remote VNC server.
+    Once the SSH is running (you may need to type a password or accept
+    a new ssh key in the terminal window that pops up), the VNC Viewer
+    will be automatically started directed to the local port of the SSH
+    tunnel which, in turn, encrypts and redirects the connection to the
+    remote VNC server.
 
-    x11vnc is run remotely to find or create your terminal services
-    desktop session.
+    x11vnc is run remotely to find or create your terminal services desktop
+    session.  It must be installed and accessible on the remote system.
 
     Enter "user@hostname.com" in 'VNC Terminal Server' if the remote
     username is different from the yours on this machine.  On Windows
-    you *MUST* supply the remote username.  This entry is passed to SSH;
-    it could also be an SSH alias you have created (in ~/.ssh/config).
+    you *MUST* supply the remote username due to a deficiency in Plink.
+    This entry is passed to SSH; it could also be an SSH alias you have
+    created (in ~/.ssh/config).
 
     If the remote SSH server is run on a non-standard port, e.g. 2222, use
-    something like this:
+    something like one of these:
 
            far-away.east:2222
            fred@someplace.no:2222
@@ -239,7 +255,8 @@ proc ts_help {} {
            VNC Terminal Server:  ts-server
            Proxy/Gateway:        jsmith@ssh.company.com:2222
 
-    The username@ is not needed if it is the same as on this machine.
+    On Unix/MacOSX the username@ is not needed if it is the same as on this
+    machine.
 
     A Web or SOCKS proxy can also be used.  Use this if you are inside a
     firewall that prohibits direct connections to remote SSH servers.
@@ -286,7 +303,12 @@ proc ts_help {} {
            - Client 8bit Color   (VNC Viewer requests low color mode)
            - Client-Side Caching (experimental x11vnc speedup)
            - X11VNC Options      (set any extra x11vnc options)
+           - Extra Sleep         (delay a bit before starting viewer)
+           - SSH Local Protections  (a bit of safety on local side)
+           - SSH KnownHosts file (to avoid SSH 'localhost' collisions)
            - SSVNC Mode          (Return to full SSVNC mode)
+
+           - Unix ssvncviewer    (set options for supplied Unix viewer)
 
 
  Requirements:
@@ -347,7 +369,11 @@ proc help {} {
 	}
 	toplev .h
 
-	scroll_text_dismiss .h.f 82 37
+	set h 37
+	if [small_height] {
+		set h 26
+	}
+	scroll_text_dismiss .h.f 82 $h
 
 	center_win .h
 	wm title .h "SSL/SSH VNC Viewer Help"
@@ -387,8 +413,8 @@ proc help {} {
 
     * Automatic SSH Tunnels are described below.
 
-    * To have a "No Encryption" button use the -noenc cmdline option, or select
-      it under Options.  Also see Tip 3) for other ways to disable Encryption.
+    * The 'No Encryption' option provides a direct connection w/o encryption.
+      (disable by the -enc option, or Options menu.)  More info in Tip 3).
 
  Port numbers:
 
@@ -469,6 +495,7 @@ proc help {} {
     You can use the "Fetch Cert" button to retrieve the Cert and then
     after you check it is OK (say, via comparing the MD5 or other info)
     you can "Save" it and use it to verify future connections to servers.
+    (However, see the note at the end of this section about CA certificates.)
 
     When "Verify All Certs" is checked, this check is always enforced,
     and so the first time you connect to a new server you may need to
@@ -477,18 +504,29 @@ proc help {} {
 
     "Verify All Certs" is on by default.
 
-    However, "Fetch Cert" and "Verify All Certs" are currently disabled
+    Note, however, "Fetch Cert" and "Verify All Certs" are currently disabled
     in the very rare "SSH + SSL" usage mode to avoid SSHing in twice.
-    You can manually set a ServerCert in this case if you like.
+    You can manually set a ServerCert or CertsDir in this case if you like.
 
-    Advanced Method:  If you, or your site administrator, goes though the
-    steps of setting up a Certificate Authority (CA) to sign the VNC server
-    and/or VNC client Certs, that can be used instead and avoids the need to
-    manually verify every cert while still authenticating every connection.
-    More info: http://www.karlrunge.com/x11vnc/faq.html#faq-ssl-ca
+
+    Advanced Method: Certificate Authority (CA):
+
+    If you, or your site administrator, goes though the steps of setting up
+    a Certificate Authority (CA) to sign the VNC server and/or VNC client
+    Certs, that can be used instead and avoids the need to manually verify
+    every cert while still authenticating every connection.  More info:
+    http://www.karlrunge.com/x11vnc/faq.html#faq-ssl-ca
 
     See the cmdline option -cacert file below in 'SSL Certificates'
     for setting a default ServerCert/CA Cert.
+
+    You may also Import the CA Cert and save it to the 'Accepted Certs'
+    directory so the "Verify All Certs" automatic checking will find it.
+
+    Note that if a Server is using a CA signed certificate instead of
+    its own Self-Signed one, then the default "Verify All Certs/Fetch Cert"
+    saving mechanism will NOT succeed.  You must obtain the CA certificate
+    and explicitly set it as the ServerCert or Import it to Accepted Certs.
 
 
  SSL/TLS Variants; VeNCrypt and ANONTLS:
@@ -497,43 +535,54 @@ proc help {} {
     "TLS" VNC Security types.  Vino uses the latter (we call it "ANONTLS");
     and a growing number use VeNCrypt (QEMU, ggi, virt-manager, VeNCrypt, Xen.)
 
-    IMPORTANT: VeNCrypt Server Auto-detection *ONLY* occurs in SSL mode and
-    when "Verify All Certs" is enabled.  If you disable it or specify an
-    individual ServerCert then you must explicitly indicate that the server
-    uses VeNCrypt.  The same applies for SSH+SSL mode and Reverse connections.
-    See below and in the Advanced Options Help for more information.
-
     Via the VeNCrypt bridge that SSVNC provides, the VeNCrypt/ANONTLS
-    support *also* works with *any* 3rd party VNC Viewers you specify via
+    support ALSO works with ANY 3rd party VNC Viewers you specify via
     'Change VNC Viewer' (e.g. RealVNC, TightVNC, UltraVNC, etc.) that do
     not directly support VeNCrypt or ANONTLS.  This works on all platforms:
     Unix, MacOSX, and Windows.
 
 
-    VeNCrypt Auto-detection and 'Server uses VeNCrypt SSL encryption':
+    Notes on VeNCrypt/ANONTLS Auto-detection:
 
-    When "Verify All Certs" is enabled, while the certificate is being fetched
-    SSVNC applies heuristics to try to automatically detect the VeNCrypt
-    or ANONTLS protocol, so that it learns of it and switches to encrypted
-    SSL/TLS at the right point.  To improve the accuracy and speed with
-    which this takes place, you can specify the one or both of the 'Server
-    uses VeNCrypt SSL encryption' and 'Server uses Anonymous Diffie-Hellman'
-    in the 'Advanced' options panel.  See each one's Advanced Options Help
-    for more info.
+    IMPORTANT: VeNCrypt Server Auto-detection *ONLY* occurs in SSL mode
+    and when an initial fetch-cert action takes place.
 
-    If you do NOT enable "Verify All Certs" (either by using a saved
-    ServerCert or no server authentication) then you *MUST* indicate 'Server
-    uses VeNCrypt SSL/TLS encryption' (and the ANON-DH if it applies) in the
-    Advanced options panel so that SSVNC can execute the different protocol.
+    While the initial certificate fetch is taking place SSVNC applies
+    heuristics to try to automatically detect the VeNCrypt or ANONTLS
+    protocol use by the VNC server.  This way it learns that the server
+    is using it and then knows to switch to VeNCrypt encrypted SSL/TLS at
+    the right point.  Then SSVNC makes a second (the real) connection to 
+    VNC server and connects the VNC viewer to it.
 
-    Similarly, if you are using VeNCrypt or ANONTLS for REVERSE connections
+    In the default "Verify All Certs" mode, a fetch cert action always
+    takes place, and so VeNCrypt/ANONTLS will be autodected.
+
+    However, if you have specified an explicit ServerCert or disabled
+    "Verify All Certs" then even though the initial fetch cert action is no
+    longer needed, it is performed anyway because it allows VeNCrypt/ANONTLS
+    auto-detection.
+
+    To disabled this initial fetch (e.g. you know the VNC server is normal
+    SSL and not VeNCrypt/ANONTLS and want to connect more quickly) then
+    select "Do not Probe for VeNCrypt" in the Advanced Options menu.
+
+    On the other hand, if you know the VNC server ONLY supports VeNCrypt or
+    ANONTLS, to improve the accuracy and speed with which the connection
+    takes place, you can specify the one or both of the 'Server uses
+    VeNCrypt SSL encryption' and 'Server uses Anonymous Diffie-Hellman'
+    in the 'Advanced' options panel.  That way guessing via an initial
+    probe is not needed or performed.  See each options's Advanced Options
+    Help for more info.
+
+    Note that if you are using VeNCrypt or ANONTLS for REVERSE connections
     (Listen) then you *MUST* set the 'Server uses VeNCrypt SSL encryption'
-    (and the ANON-DH if it applies) option in Advanced.  Note that REVERSE
-    VeNCrypt and ANONTLS connections currently do not work on Windows.
+    (and the ANON-DH if it applies) option in Advanced.  Note also that
+    REVERSE VeNCrypt and ANONTLS connections currently do not work on
+    Windows.
 
     Also, if you are using the "Use SSH+SSL" double tunnel, you MUST set
     'Server uses VeNCrypt SSL encryption' (and the ANON-DH if it applies)
-    because "Verify All Certs" is disabled in SSH+SSL mode.
+    because the initial fetch cert is disabled in SSH+SSL mode.
 
 
  Deciphering SSL Negotiation Success or Failure:
@@ -562,9 +611,17 @@ proc help {} {
       2008.11.20 08:12:31 LOG3[1662]: SSL_connect: 14090086: error:14090086:SSL
            routines:SSL3_GET_SERVER_CERTIFICATE:certificate verify failed
 
+    Here is a case where the Server's Cert has expired:
+
+      2009.12.27 12:20:25 LOG4[25500]: VERIFY ERROR: depth=0, error=certificate
+           has expired: /C=AU/L=...
+      2009.12.27 12:20:25 LOG3[25500]: SSL_connect: 14090086: error:14090086:SSL
+           routines:SSL3_GET_SERVER_CERTIFICATE:certificate verify failed
+
+
     If you disable "Verify All Certs" and do not supply a ServerCert,
     then there will be no 'VERIFY ...' in the output because the SSVNC
-    stunnel accepts the server's cert without question.
+    stunnel accepts the server's cert without question (this is insecure.)
 
     Also in the output will be messages about whether the SSL VNC server
     rejected your connection because it requires you to authenticate
@@ -714,26 +771,27 @@ proc help {} {
 	set help_misc {
  Windows STUNNEL problems:
 
-    Note that on Windows when the Viewer connection is finished you will be
+    Note that on Windows when the Viewer connection is finished by default
+    SSVNC will try to kill the STUNNEL process for you.
+
+    If Options -> Kill Stunnel Automatically is not set you will be
     prompted if you want SSVNC to try to kill the STUNNEL process for you.
-    Usually you will say Yes, however if there are problems connecting you
-    may want to look at the STUNNEL Log first.
+    Usually you will say Yes, however if there are problems connecting
+    you may want to look at the STUNNEL Log first.
 
-    Double clicking the STUNNEL tray icon (dark green) will show you its
-    Log file (useful for debugging connections).
+    Before it is killed, double clicking the STUNNEL tray icon (dark green)
+    will show you its Log file (useful for debugging connection problems).
 
-    SSVNC will kill the STUNNEL process for you, but you may still need to
-    move the mouse over the icon to make the picture go away!
+    Even though SSVNC will kill the STUNNEL process for you, you will
+    still need to move the mouse over the icon to make the little picture
+    go away!!!  This is unfortunate but there does not seem to be a way
+    to avoid it.
 
     In some cases you may need to terminate STUNNEL manually from the System
     Tray (right click on dark green icon) and selecting "Exit".
 
-    If you want SSVNC to always kill STUNNEL automatically, run with the
-    '-killstunnel' command line option or set it under Options.  You can also
-    set killstunnel=1 in ssvnc_rc.  Recently (1/2009) this option has been
-    enabled by default, so use -nokillstunnel and killstunnel=0 to disable
-    it in general, or uncheck the option for the next connection.
-
+    Use -nokillstunnel or killstunnel=0 in ~/.ssvncrc to have SSVNC
+    start up with stunnel killing disabled.
 
  Untrusted Local Users:
 
@@ -949,6 +1007,46 @@ proc help {} {
 
            VNC Host:Display:   localhost:0
            Proxy/Gateway:      http://mysocks.west:1080,ssh.company.com,joes-pc
+
+
+
+    SSH NoHostAuthenticationForLocalhost=yes and UserKnownHostsFile=file
+    for localhost tunnelling:
+
+    Warning:  Note that for proxy use with ssh(1) tunnels going through
+    localhost are used.  This means ssh(1) thinks the remote hostname is
+    'localhost', which may cause collisions and confusion when storing
+    and checking SSH keys.
+
+    By default on Unix when a 'localhost' ssh host is involved the
+    ssh option -o NoHostAuthenticationForLocalhost=yes is applied (see
+    ssh_config(1) for details.)  This avoids the warnings and ssh refusing
+    to connect, but it reduces security.  A man in the middle attack may
+    be possible.  SSVNC prints out a warning in the terminal every time
+    the NoHostAuthenticationForLocalhost option is used.
+
+    On Unix to disable the use of NoHostAuthenticationForLocalhost set the env.
+    variable SSVNC_SSH_LOCALHOST_AUTH=1.
+
+    On Unix a MUCH SAFER and more convenient way to proceed is to set the
+    known hosts option in Options -> Advanced -> 'Private SSH KnownHosts file'
+    Then, only for the host in the current profile, a private known_hosts
+    file will be used and so there will be no 'localhost' collisions.
+    This method is secure (assuming you verify the SSH key fingerprint)
+    and avoids the man in the middle attack.
+
+    On Windows, Putty/Plink is used and does not have the UserKnownHosts
+    or NoHostAuthenticationForLocalhost features.  Keys are stored in
+    the registry as localhost:port pairs and so it is possible to use the
+    'Port Slot' option to keep the keys separate to avoid the dialogs and
+    also maintain good security.
+
+    Note that for the "double SSH gateway" method the risk from using
+    NoHostAuthenticationForLocalhost is significantly less because the first
+    ssh connection does not use the option (it connects directly to the remote
+    host) and the second one is only exposed for the leg inside the first
+    gateway (but is still vulnerable there when NoHostAuthenticationForLocalhost
+    is used.)
 
 
  UltraVNC Proxies/Gateways:
@@ -1171,17 +1269,25 @@ proc help {} {
         Shift+Ctrl-E in the entry box is a short-cut to add or remove
         the prefix "Vnc://" from the host:disp string.
 
-        You can also run ssvnc with the '-noenc' cmdline option to have a
-        check option that lets you turn off Encryption (and profiles will
-        store this setting).  Pressing Ctrl-E on the main panel is a short-cut
-        to toggle between the -noenc 'No Encryption' mode and normal mode.
-        The option "Show 'No Encryption' Option" under Options also toggles it.
+        Note as of SSVNC 1.0.25 the '-noenc' mode is now the default. I.e.
+        the 'No Encryption' option ('None') is shown by default. To disable
+        the button supply the '-enc' cmdline option.  
+
+        You can also run ssvnc with the '-noenc' cmdline option (now the
+        default) to have a check option that lets you turn off Encryption
+        (and profiles will store this setting).  Pressing Ctrl-E on
+        the main panel is a short-cut to toggle between the -noenc
+        'No Encryption' mode and normal mode.  The option "Show 'No
+        Encryption' Option" under Options also toggles it.
+
+        The '-enc' option disables the button (and so makes it less obvious
+        how do disable encryption.)
 
         Setting SSVNC_DISABLE_ENCRYPTION_BUTTON=1 in your environment is
         the same as -noenc.  You can also put noenc=1 in your ~/.ssvncrc file.
 
-        Apologies that we do not make this easy to figure out how to do,
-        but the goal of SSVNC is secure and encrypted connections!
+        Setting SSVNC_DISABLE_ENCRYPTION_BUTTON=0 in your environment is
+        the same as -enc.  You can also put noenc=0 in your ~/.ssvncrc file.
 
         Please be cautious/thoughtful when you make a VNC connection with
         encryption disabled.  You may send sensitive information (e.g. a
@@ -1199,11 +1305,12 @@ proc help {} {
         is not sent in plaintext) leaves your VNC password susceptible a
         dictionary attack unless encryption is used to hide it.
 
-        So we force you to learn about and supply the "vnc://" or "Vnc://"
-        prefix to the host:port or use -noenc or the "Show 'No Encryption'
-        Option" to disable encryption.  This is a small hurdle, but maybe
-        someone will think twice.  It is a shame that VNC has been around
-        for over 10 years and still does not have built-in strong encryption.
+        So (before we made the button on by default!) we forced you to
+        learn about and supply the "vnc://" or "Vnc://" prefix to the
+        host:port or use -noenc or the "Show 'No Encryption' Option"
+        to disable encryption.  This is a small hurdle, but maybe someone
+        will think twice.  It is a shame that VNC has been around for over
+        10 years and still does not have built-in strong encryption.
 
         Note the Vnc:// or vnc:// prefix will be stored in any profile that
         you save so you do not have to enter it every time.
@@ -1325,16 +1432,36 @@ proc help {} {
         and assumed to be free, and is passed to x11vnc's -rfbport option.
         This only works with x11vnc (not vncserver).
 
-    12) You can change the X DISPLAY variable by typing DISPLAY=... into
+    12) Tricks with environment variables:
+
+        You can change the X DISPLAY variable by typing DISPLAY=... into
         VNC Host:Display and hitting Return or clicking Connect. Same
-        for HOME=.  Setting SLEEP=n increases the amount of time waited
-        before starting the viewer.  The env. var. SSVNC_EXTRA_SLEEP
-        also does this (and also Sleep: Option setting)  On Mac, you
-        can set DYLD_LIBRARY_PATH=... too.  It should propagate down
-        the viewer.
+        for HOME=.  On Mac, you can set DYLD_LIBRARY_PATH=... too.
+        It should propagate down the viewer.
+
+        Setting SLEEP=n increases the amount of time waited before
+        starting the viewer.  The env. var. SSVNC_EXTRA_SLEEP also does
+        this (and also Sleep: Option setting) Setting FINISH=n sets the
+        amount of time slept before the Terminal window exits on Unix
+        and MacOS X.  (same as SSVNC_FINISH_SLEEP env. var.)
+
+        Full list of parameters HOME/SSVNC_HOME, DISPLAY/SSVNC_DISPLAY
+        DYLD_LIBRARY_PATH/SSVNC_DYLD_LIBRARY_PATH, SLEEP/SSVNC_EXTRA_SLEEP
+        FINISH/SSVNC_FINISH_SLEEP, DEBUG_NETSTAT, REPEATER_FORCE, SSH_ONLY.
+        (the ones joined by "/" are equivalent names, and the latter can
+        be set as an env. var. as well.)
 
         After you set the parameter, clear out the 'VNC Host:Display'
         entry and replace it with the actual host and display number.
+
+        To replace the xterm terminal where most of the external commands
+        are run set SSVNC_XTERM_REPLACEMENT to a command that will run
+        a command in a terminal.  I.e.:  "$SSVNC_XTERM_REPLACEMENT cmd"
+        will run cmd.  If present, %GEOMETRY is expanded to a desired
+        +X+Y geometry.  If present, %TITLE is expanded to a desired title.
+        Examples: SSVNC_XTERM_REPLACEMENT='gnome-terminal -e'
+                  SSVNC_XTERM_REPLACEMENT='gnome-terminal -t "%TITLE" -e'
+                  SSVNC_XTERM_REPLACEMENT='konsole -e'
 
     13) If you want this application to be SSH only, then supply the
         command line option "-ssh" or set the env. var SSVNC_SSH_ONLY=1.
@@ -1379,7 +1506,8 @@ proc help {} {
 
         (The above 4 settings apply only to the Terminal Services Mode.)
 
-        noenc=1  (same as the -noenc option for a 'No Encryption' button)
+        noenc=1  (same as the -noenc option for a 'No Encryption' option)
+        noenc=0  (do not show the 'No Encryption' option)
 
         killstunnel=1 (same as -killstunnel), on Windows automatically kills
         the STUNNEL process when the viewer exits.  Disable via killstunnel=0
@@ -1399,8 +1527,11 @@ proc help {} {
         crl=file (same as -crl file option).  Set your default CRL File
         to "file".  If file does not exist ~/.vnc/certs/file is used.
 
-        Prefix any of these with "FORCE:" to make them immutable, e.g.
-        "cacert=FORCE:CA".
+        Prefix any of these cert/key files with "FORCE:" to make them
+        immutable, e.g.  "cacert=FORCE:CA".
+
+        You can set any environment variable in ~/.ssvncrc by using a line
+        like env=VAR=value, for example:  env=SSVNC_FINISH_SLEEP=2
 
         To change the fonts (see Tip 18 below for examples):
 
@@ -1581,7 +1712,11 @@ proc ssvnc_escape_help {} {
 proc help_certs {} {
 	toplev .ch
 
-	scroll_text_dismiss .ch.f 87 33
+	set h 33
+	if [small_height] {
+		set h 28
+	}
+	scroll_text_dismiss .ch.f 87 $h
 
 	center_win .ch
 	wm resizable .ch 1 0
@@ -1613,7 +1748,8 @@ proc help_certs {} {
     SSL Certificates will Expire after a certain period (usually 1-2 years;
     if you create a cert with this tool you can set it to any length you want).
     So if for a particular Cert you find you can no longer connect, check the
-    STUNNEL log output to see if the cert has expired.  Then create a new one.
+    STUNNEL log output to see if the cert has expired.  Then create and distribute
+    a new one.
 
  Fetch Cert:
 
@@ -1623,6 +1759,10 @@ proc help_certs {} {
     as will be set as the "ServerCert" to verify against for the next connection.
     To make this verification check permanent, you will need to save the profile
     via 'Save'.
+
+    NOTE: See the CA section below for how "Fetch Cert/Verify All Certs" WILL NOT
+    WORK when a Certificate Authority (CA) is used (i.e. you need to save the CA's
+    cert instead.)  It will work if the certificate is Self-Signed.
 
  Verify All Certs:
 
@@ -1645,13 +1785,18 @@ proc help_certs {} {
     SSVNC_NO_VERIFY_ALL=1 before starting.  If you do not even want to see the
     button, use "ssvnc -nvb" or SSVNC_NO_VERIFY_ALL_BUTTON=1.
 
-    Note: "Fetch Cert" and "Verify All Certs" do not currently work in "SSH +
-    SSL" mode.  In this case to have server authentication "ServerCert" must
-    be set explicitly to a file (or "CertsDir" to a directory).  
+    Note: "Fetch Cert" and "Verify All Certs" are currently not implemented in
+    "SSH + SSL" mode.  In this case to have server authentication "ServerCert"
+    must be set explicitly to a file (or "CertsDir" to a directory).
 
     Also note that "Fetch Cert" only works in a limited fashion in "Listen"
     mode (it is the VNC Server that initiates the connection), and so you
     may need to be set via "ServerCert" as well.
+
+    NOTE: See the CA section below for how "Fetch Cert/Verify All Certs"
+    WILL NOT WORK when a Certificate Authority (CA) is used (i.e. you need
+    to save the CA's cert instead.)  The "Fetch Cert" saving method will
+    work if the certificate is Self-Signed.
 
  CA:
 
@@ -1664,6 +1809,11 @@ proc help_certs {} {
     CA's are not often used, but if the number of VNC Servers scales up it can
     be very convenient because the viewers (i.e. SSVNC) only need the CA cert,
     not all of the Server certs.
+
+    IMPORTANT NOTE: if a VNC Server is using a CA signed certificate instead
+    of its own Self-Signed one, then "Fetch Cert", etc. saving mechanism
+    WILL NOT WORK.  You must obtain the CA certificate and explicitly set
+    it as the ServerCert or import it to 'Accepted Certs'.
 
 
  Now what goes into the panel's entry boxes is described.
@@ -1738,7 +1888,7 @@ proc help_certs {} {
 
  Import Certificate:
 
-    You can paste in Certificate or read one in from a file to add to your
+    You can paste in a Certificate or read one in from a file to add to your
     list of Server Certificates.  If (also) saved in the 'Accepted Certs'
     directory, it will be automatically used to verify any Server when in
     'Verify All Certs' Mode. 
@@ -2003,7 +2153,8 @@ set msg {
 
     (The above 4 settings apply only to the Terminal Services Mode.)
 
-    noenc=1  (same as the -noenc option for a 'No Encryption' button)
+    noenc=1  (same as the -noenc option for a 'No Encryption' option)
+    noenc=0  (do not show the 'No Encryption' option)
 
     font_default=tk-font-name     (sets the font for menus and buttons)
     font_fixed=tk-font-name       (sets the font for help text)
@@ -2023,7 +2174,8 @@ proc help_opts {} {
 
 set msg {
   Use SSL:  The default, use SSL via STUNNEL (this requires SSL aware VNC
-            server, e.g. x11vnc -ssl SAVE ...)
+            server, e.g. x11vnc -ssl SAVE ...)  See the description in the
+            main Help panel.
 
   Use SSH:  Instead of using STUNNEL SSL, use ssh(1) for the encrypted
             tunnel.  You must be able to log in via ssh to the remote host.
@@ -2094,15 +2246,19 @@ set msg {
             Tunnel the SSL connection through a SSH tunnel.  Use this
             if you want end-to-end SSL and must use a SSH gateway (e.g. to
             enter a firewall) or if additional SSH port redirs are required
-            (CUPS, Sound, SMB tunnelling: See Advanced Options).  Rarely used
-            mode, but included in case the need arises.
+            (CUPS, Sound, SMB tunnelling: See Advanced Options).
+
+            This is a RARELY used mode, but included in case the need arises.
 
 
   No Encryption:
 
-            In '-noenc' mode (Ctrl-E also toggles this mode), use this to
-            make a Direct connection to the VNC Server with no encryption
-            whatsoever.  (Be careful about passwords, etc.)
+            In '-noenc' mode, which is now the default, (Ctrl-E also toggles
+            this mode), use this to make a Direct connection to the VNC Server
+            with no encryption whatsoever.  (Be careful about passwords, etc.)
+
+            The -noenc mode is now the default since SSVNC 1.0.25, use
+            the '-enc' cmdline option to disable the button.
 
 
   Automatically Find X Session:
@@ -2278,6 +2434,7 @@ set msg {
 
   Compress Level/Quality:  Set TightVNC encoding parameters.
 
+
   Putty PW:  On Windows only: use the supplied password for plink SSH
              logins.  Unlike the other options the value is not saved
              when 'Save' is performed.  This feature is useful when
@@ -2287,6 +2444,34 @@ set msg {
              be used to avoid repeatedly entering passwords (note this
              requires setting up and distributing SSH keys).  Start up
              pagent.exe or puttygen.exe and read the instructions there.
+
+             Note, that there is a small exposure to someone seeing the
+             putty password on the plink command line.
+
+             Note that the Putty PW is not cleared if you load in a
+             new VNC profile.
+
+
+  Port Slot: On Windows ports cannot be selected or checked as easily as
+             on Unix.  So listening ports for ssh redirs, proxy tunnelling,
+             and etc. things are picked via finding a free "slot".
+             The slots run from 30 to 99 and are locked based on the
+             existence of a file with the slot number in it.  When the
+             connection is about to be made, a free slot is found and used
+             to work out some ports (e.g. 5930 for the local VNC port,
+             etc.)  This way simultaneous SSVNC connections can take place.
+
+             One drawback of this is that Putty/Plink stores SSH keys based
+             on hostname:port, and with a proxy tunnel the hostname is
+             "localhost".  So the Putty key store may have key collisions
+             for the localhost tunnels, and plink will prompt you to
+             resolve the conflict WRT a different SSH key being discovered.
+
+             To work around this to some degree you can select a unique
+             Port Slot (in the range 50-99) for a specific host.  Then the
+             ssh redir port to this host will never change and so the
+             Putty localhost:fixed-port key should remain valid.
+
 
   Mode:      To change the GUI Mode, select between the full SSVNC
              (i.e. SSL and SSH), SSHVNC (i.e. SSH-Only), and Terminal
@@ -2298,6 +2483,9 @@ set msg {
 
 
   Show 'No Encryption' Option:
+
+             Note: since SSVNC 1.0.25 the 'No Encryption' Option is
+             enabled by default.
 
              Select this to display a button that disables both SSL and
              SSH encryption.  This is the same as Ctrl+E.  This puts
@@ -2338,10 +2526,14 @@ set msg {
 	jiggle_text .oh.f.t
 }
 
-proc help_fetch_cert {} {
+proc help_fetch_cert {{selfsigned 1}} {
 	toplev .fh
 
-	scroll_text_dismiss .fh.f 85 35
+	set h 35
+	if [small_height] {
+		set h 28
+	}
+	scroll_text_dismiss .fh.f 85 $h
 
 	center_win .fh
 	wm resizable .fh 1 0
@@ -2349,51 +2541,71 @@ proc help_fetch_cert {} {
 	wm title .fh "Fetch Certificates Help"
 
 	set msg {
-  The above SSL Certificate has been retrieved from the VNC Server via the
+  The displayed SSL Certificate has been retrieved from the VNC Server via the
   "Fetch Cert" action.
   
-  It has merely been downloaded via the SSL Protocol: **IT HAS NOT BEEN VERIFIED
-  IN ANY WAY**
+  It has merely been downloaded via the SSL Protocol:
+
+         *** IT HAS NOT BEEN VERIFIED OR AUTHENTICATED IN ANY WAY ***
   
   So, in principle, it could be a fake certificate being inserted by a bad
   person attempting to perform a Man-In-The-Middle attack on your SSL connection.
   
-  If, however, by some external means you can verify the authenticity of
-  this SSL Certificate you can use it for your VNC SSL connection to the
-  VNC server you wish to connect to.  It will provide an authenticated and
-  encrypted connection.
+  If, however, by some external means you can verify the authenticity of this SSL
+  Certificate you can use it for your VNC SSL connection to the VNC server you
+  wish to connect to.  It will provide an authenticated and encrypted connection.
   
-  You can verify the SSL Certificate by comparing the MD5 or SHA1 hash
-  value via a method/channel you know is safe (i.e. not also under control
-  of a Man-In-The-Middle attacker).  You could also check the text between
-  the -----BEGIN CERTIFICATE----- and -----END CERTIFICATE----- tags, etc.
+  You can verify the SSL Certificate by comparing the MD5 or SHA1 hash value
+  via a method/channel you know is safe (i.e. not also under control of a
+  Man-In-The-Middle attacker).  You could also check the text between the
+  -----BEGIN CERTIFICATE----- and -----END CERTIFICATE----- tags, etc.
   
   Once you are sure it is correct, you can press the Save button to save the
-  certificate to a file on the local machine for use when you connect via
-  VNC tunneled through SSL.  If you save it, then that file will be set as
-  the Certificate to verify the VNC server against.  You can see this in
-  the dialog started via the "Certs..." button on the main panel.
+  certificate to a file on the local machine for use when you connect via VNC
+  tunneled through SSL.  If you save it, then that file will be set as the
+  Certificate to verify the VNC server against.  You can see this in the dialog
+  started via the "Certs..." button on the main panel.
   
-  NOTE: If you want to make PERMANENT the association of the saved SSL
-  certificate file with the VNC server host, you MUST save the setting as
-  a profile for loading later. To Save a Profile, click on Options -> Save
-  Profile ..., and choose a name for the profile and then click on Save.
+  NOTE: If you want to make Permanent the association of the saved SSL certificate
+  file with the VNC server host, you MUST save the setting as a profile for
+  loading later. To Save a Profile, click on Options -> Save Profile ...,
+  and choose a name for the profile and then click on Save.
 
-  If "Verify All Certs" is checked, then you are forced to check all
-  new certs.  In this case the certs are saved in the 'Accepted Certs'
-  directory against which all servers will be checked unless "ServerCert"
-  or "CertsDir" has been set to something else.
+  If "Verify All Certs" is checked, then you are forced to check all new certs.
+  In this case the certs are saved in the 'Accepted Certs' directory against
+  which all servers will be checked unless "ServerCert" or "CertsDir" has been
+  set to something else.
 
-  To reload the profile at a later time, click on the "Load" button on
-  the main panel and then select the name and click "Open".  If you want
-  to be sure the certificate is still associated with the loaded in host,
-  click on "Certs..." button and make sure the "ServerCert" points to the
-  desired SSL filename.
+  To reload the profile at a later time, click on the "Load" button on the
+  main panel and then select the name and click "Open".  If you want to be
+  sure the certificate is still associated with the loaded in host, click on
+  "Certs..." button and make sure the "ServerCert" points to the desired SSL
+  filename.
 
-  See the Certs... Help for more information.  A sophisticated method
-  can be set up using a Certificate Authority key to verify never before
-  seen certificates (i.e. like your web browser does).
+  See the Certs... Help for more information.  A sophisticated method can be set
+  up using a Certificate Authority key to verify never before seen certificates
+  (i.e. like your web browser does).
 }
+
+	set msg2 {
+  --------------------------------------------------------------------------
+  NOTE: The certificate that was just downloaded IS NOT a Self-Signed
+  certificate.  It was signed by a Certificate Authority (CA) instead.
+  So saving it does not make sense because it cannot be used to authenticate
+  anything.
+
+  You need to Obtain and Save the CA's certificate instead.
+
+  The remainder of this Help description applies ONLY to Self-Signed
+  certificates (i.e. NOT the most recently downloaded one.)
+  --------------------------------------------------------------------------
+
+
+}
+
+	if {!$selfsigned} {
+		regsub {  If, however,} $msg "$msg2  If, however," msg
+	}
 
 	.fh.f.t insert end $msg
 	jiggle_text .fh.f.t
@@ -2520,13 +2732,21 @@ proc win9x_plink_msg {file} {
 }
 
 proc mesg {str} {
-	set maxx 54
+	set maxx 60
+	if [regexp {^INFO: without Certificate} $str] {
+		set maxx 72
+	}
 	if {[string length $str] > $maxx} {
-		set str [string range $str 0 $maxx]
+		set lend [expr $maxx - 1]
+		set str [string range $str 0 $lend]
 		append str " ..."
 	}
 	.l configure -text $str
 	update
+	global env
+	if [info exists env(SSVNC_MESG_DELAY)] {
+		after $env(SSVNC_MESG_DELAY)
+	}
 }
 
 proc get_ssh_hp {str} {
@@ -2729,14 +2949,15 @@ proc set_defaults {} {
 	global ts_mode ts_desktop_size ts_desktop_depth choose_desktop_geom
 	global additional_port_redirs additional_port_redirs_list
 	global stunnel_local_protection stunnel_local_protection_type ssh_local_protection multiple_listen listen_once listen_accept_popup listen_accept_popup_sc
+	global ssh_known_hosts ssh_known_hosts_filename
 	global ultra_dsm ultra_dsm_type ultra_dsm_file ultra_dsm_noultra ultra_dsm_salt
 	global sound_daemon_remote_cmd sound_daemon_remote_port sound_daemon_kill sound_daemon_restart
 	global sound_daemon_local_cmd sound_daemon_local_port sound_daemon_local_kill sound_daemon_x11vnc sound_daemon_local_start 
 	global smb_su_mode smb_mount_list
-	global use_port_knocking port_knocking_list
+	global use_port_knocking port_knocking_list port_slot
 	global ycrop_string ssvnc_scale ssvnc_escape sbwid_string rfbversion ssvnc_encodings ssvnc_extra_opts use_x11cursor use_nobell use_rawlocal use_notty use_popupfix extra_sleep use_listen use_unixpw use_x11vnc_find unixpw_username
 	global disable_ssl_workarounds disable_ssl_workarounds_type
-	global server_vencrypt server_anondh
+	global no_probe_vencrypt server_vencrypt server_anondh
 	global include_list
 	global svcert_default mycert_default crlfil_default
 
@@ -2756,6 +2977,7 @@ proc set_defaults {} {
 	set defs(use_send_always) 0
 	set defs(use_turbovnc) 0
 	set defs(disable_pipeline) 0
+	set defs(no_probe_vencrypt) 0
 	set defs(server_vencrypt) 0
 	set defs(server_anondh) 0
 	set defs(use_grab) 0
@@ -2819,6 +3041,8 @@ proc set_defaults {} {
 	set defs(stunnel_local_protection) 1
 	set defs(stunnel_local_protection_type) "exec"
 	set defs(ssh_local_protection) 1
+	set defs(ssh_known_hosts) 0
+	set defs(ssh_known_hosts_filename) ""
 	set defs(multiple_listen) 0
 	set defs(listen_once) 0
 	set defs(listen_accept_popup) 0
@@ -2829,6 +3053,8 @@ proc set_defaults {} {
 	set defs(ultra_dsm_type) "guess"
 	set defs(ultra_dsm_noultra) 0
 	set defs(ultra_dsm_salt) ""
+
+	set defs(port_slot) ""
 
 	set defs(cups_local_server) ""
 	set defs(cups_remote_port) ""
@@ -3367,7 +3593,11 @@ proc check_debug_netstat {port str wn} {
 
 	toplev .dbns
 
-	scroll_text_dismiss .dbns.f 82 35
+	set h 35
+	if [small_height] {
+		set h 28
+	}
+	scroll_text_dismiss .dbns.f 82 $h
 	center_win .dbns
 	.dbns.f.t insert end "LOOKING FOR PORT: $port\n\n$str"
 	jiggle_text .dbns.f.t
@@ -3415,6 +3645,7 @@ proc launch_windows_ssh {hp file n} {
 		} elseif {[regexp {cmd=PUTTY} $hp]} {
 			;
 		} else {
+			# XXX add :0 instead?
 			mesg "Bad vncdisp, missing :0 ?, $vnc_disp"
 			bell
 			return 0
@@ -3511,12 +3742,18 @@ proc launch_windows_ssh {hp file n} {
 #mesg "sproxy1_user: $sproxy1_user"; after 2000
 #mesg "sproxy1_port: $sproxy1_port"; after 2000
 
-			set port2 [rand_port]
+			set port2 ""
+			if [regexp -- {-([0-9][0-9]*)} [file tail $file] mv dport] {
+				set port2 [expr 21000 + $dport]
+			} else {
+				set port2 [rand_port]
+			}
+
 			set env(SSVNC_PROXY) $pproxy
 			set env(SSVNC_LISTEN) $port2
 			set env(SSVNC_DEST) "$sproxy1_host:$sproxy1_port"
 
-			mesg "Starting TCP helper on port $port2 ..."
+			mesg "Starting Proxy TCP helper on port $port2 ..."
 			after 300
 			set proxy_pid [exec "connect_br.exe" &]
 
@@ -3551,8 +3788,13 @@ proc launch_windows_ssh {hp file n} {
 			set proxy1 [lindex $s 0]
 			set proxy2 [lindex $s 1]
 
-			set p_port [expr 3000 + 1000 * rand()]	
-			set p_port [expr round($p_port)]
+			set p_port ""
+			if [regexp -- {-([0-9][0-9]*)} [file tail $file] mv dport] {
+				set p_port [expr 4000 + $dport]
+			} else {
+				set p_port [expr 3000 + 1000 * rand()]	
+				set p_port [expr round($p_port)]
+			}
 
 			set s [ssh_split $proxy1]
 			set ssh_user1 [lindex $s 0]
@@ -4302,7 +4544,7 @@ proc darwin_terminal_cmd {{title ""} {cmd ""} {bg 0}} {
 }
 
 proc unix_terminal_cmd {{geometry "+100+100"} {title "xterm-command"} {cmd "echo test"} {bg 0} {xrm1 ""} {xrm2 ""} {xrm3 ""}} {
-	global uname
+	global uname env
 	if {$uname == "Darwin"} {
 		global env
 		set doX  0;
@@ -4326,6 +4568,44 @@ proc unix_terminal_cmd {{geometry "+100+100"} {title "xterm-command"} {cmd "echo
 			after 1000
 			catch {tkwait window .fetch}
 			update
+		}
+	}
+
+	if [info exists env(SSVNC_XTERM_REPLACEMENT)] {
+		set tcmd $env(SSVNC_XTERM_REPLACEMENT)
+		if {$tcmd != ""} {
+			regsub -all {%GEOMETRY} $tcmd $geometry tcmd
+			regsub -all {%TITLE} $tcmd $title tcmd
+
+			set tmp1 /tmp/xterm_replacement1.[tpid]
+			set tmp1 [mytmp $tmp1]
+			set fh1 ""
+			catch {set fh1 [open $tmp1 "w"]}
+
+			set tmp2 /tmp/xterm_replacement2.[tpid]
+			set tmp2 [mytmp $tmp2]
+			set fh2 ""
+			catch {set fh2 [open $tmp2 "w"]}
+			if {$fh1 != "" && $fh2 != ""} {
+				puts $fh1 "#!/bin/sh";
+				puts $fh1 "$cmd"
+				puts $fh1 "rm -f $tmp1"
+				close $fh1
+				catch {exec chmod 755 $tmp1}
+				puts $fh2 "#!/bin/sh"
+				puts $fh2 "$tcmd $tmp1"
+				puts $fh2 "rm -f $tmp2"
+				close $fh2
+				catch {exec chmod 755 $tmp2}
+				if {$bg} {
+					exec $tmp2 2>@stdout &
+				} else {
+					exec $tmp2 2>@stdout
+				}
+				return
+			}
+			catch {close $fh1}
+			catch {close $fh2}
 		}
 	}
 
@@ -4577,10 +4857,6 @@ proc direct_connect_msg {} {
 	}
 	if {$msg != ""} {
 		set msg "Direct connect via vnc://hostname\nThe following options will be disabled:\n\n$msg"
-		global is_windows
-		if {0 && $is_windows} {
-			set msg "Direct connect mode: vnc://host:disp is not supported on Windows."
-		}
 		raise .
 		tk_messageBox -type ok -icon info -message $msg
 	}
@@ -4589,6 +4865,9 @@ proc direct_connect_msg {} {
 proc fetch_cert {save} {
 	global env vncdisplay is_windows
 	set hp [get_vncdisplay]
+
+	global vencrypt_detected
+	set vencrypt_detected ""
 
 	global use_listen
 	if {$use_listen} {
@@ -4682,7 +4961,7 @@ proc fetch_cert {save} {
 		set cert_text [fetch_cert_windows $hp]
 	}
 
-if [info exists env(CERTDBG)] {puts "\nFetch-0-\n$cert_text"}
+	if [info exists env(CERTDBG)] {puts "\nFetch-0-\n$cert_text"}
 
 	set vencrypt 0
 	set anondh 0
@@ -4714,7 +4993,7 @@ if [info exists env(CERTDBG)] {puts "\nFetch-0-\n$cert_text"}
 					after 600
 					catch {set cert_text [fetch_cert_windows $hp $vencrypt $anondh]}
 				}
-if [info exists env(CERTDBG)] {puts "\nFetch-1-\n$cert_text"}
+	if [info exists env(CERTDBG)] {puts "\nFetch-1-\n$cert_text"}
 			}
 		}
 	}
@@ -4744,7 +5023,7 @@ if [info exists env(CERTDBG)] {puts "\nFetch-1-\n$cert_text"}
 					after 600
 					catch {set cert_text [fetch_cert_windows $hp $vencrypt $anondh]}
 				}
-if [info exists env(CERTDBG)] {puts "\nFetch-2-\n$cert_text"}
+	if [info exists env(CERTDBG)] {puts "\nFetch-2-\n$cert_text"}
 			}
 		}
 	}
@@ -4752,7 +5031,8 @@ if [info exists env(CERTDBG)] {puts "\nFetch-2-\n$cert_text"}
 		if [regexp {CONNECTED} $cert_text] {
 			if {[regexp -nocase -line {cipher.*ADH} $cert_text]} {
 				# it is Anonymous Diffie Hellman
-				mesg "WARNING: Anonymous Diffie Hellman Server detected"
+				mesg "WARNING: Anonymous Diffie Hellman Server detected (no Cert)"
+				after 300
 				.f4.getcert configure -state normal
 				return $cert_text
 			} else {
@@ -4760,6 +5040,12 @@ if [info exists env(CERTDBG)] {puts "\nFetch-2-\n$cert_text"}
 				set vencrypt_detected ""
 			}
 		}
+	}
+
+	global vencrypt_detected server_vencrypt
+	if {$vencrypt_detected != "" && !$server_vencrypt} {
+		mesg "VeNCrypt/ANONTLS server detected."
+		after 600
 	}
 
 	.f4.getcert configure -state normal
@@ -4804,9 +5090,36 @@ if [info exists env(CERTDBG)] {puts "\nFetch-2-\n$cert_text"}
 		}
 		set text "" 
 		set on 0
+		set subject ""
+		set curr_subject ""
+		set chain_n -1
+		set chain(__empty__) ""
 		foreach line [split $cert_text "\n"] {
 			if [regexp -- {-----BEGIN CERTIFICATE-----} $line] {
 				incr on
+			}
+			if {$chain_n < -1} {
+				;
+			} elseif [regexp {^ *([0-9]) *s:(.*/[A-Z][A-Z]*=.*$)} $line m cn sb] {
+				set cn [string trim $cn]
+				set sb [string trim $sb]
+				#puts cn=$cn
+				#puts sb=$sb
+				if {$subject == ""} {
+					set subject $sb
+				}
+				if {$cn > $chain_n} {
+					set chain_n $cn
+					set curr_subject $sb
+				} else {
+					set chain_n -2
+				}
+			} elseif [regexp {^ *i:(.*/[A-Z][A-Z]*=.*$)} $line m is] {
+				set is [string trim $is]
+				#puts is=$is
+				if {$curr_subject != ""} {
+					set chain($curr_subject) $is
+				}
 			}
 			if {$on != 1} {
 				continue;
@@ -4816,6 +5129,51 @@ if [info exists env(CERTDBG)] {puts "\nFetch-2-\n$cert_text"}
 				set on 2
 			}
 		}
+		set chain_str "subject: not-known\n"
+		set curr_subject $subject
+		set self_signed 0
+		set top_issuer ""
+		for {set i 0} {$i < 10} {incr i} {
+			if {$curr_subject != ""} {
+				if {$i == 0} {
+					set chain_str "- subject: $curr_subject\n\n"
+				} else {
+					set chain_str "${chain_str}- issuer$i: $curr_subject\n\n"
+					set top_issuer $curr_subject;
+				}
+				if {![info exists chain($curr_subject)]} {
+					break
+				} elseif {$chain($curr_subject) == ""} {
+					break
+				} elseif {$curr_subject == $chain($curr_subject)} {
+					set j [expr $i + 1]
+					set chain_str "${chain_str}- issuer$j: $curr_subject\n\n"
+					set top_issuer $curr_subject;
+					if {$i == 0} {
+						set self_signed 1
+					}
+					break;
+				}
+				set curr_subject $chain($curr_subject)
+			}
+		}
+		set chain_str "${chain_str}INFO: SELF_SIGNED=$self_signed\n\n"
+		if {$self_signed} {
+			set chain_str "${chain_str}INFO: Certificate is Self-Signed.\n"
+			set chain_str "${chain_str}INFO: It will successfully authenticate when used as a ServerCert or Accepted-Cert.\n"
+			set chain_str "${chain_str}INFO: Be sure to check carefully that you trust this certificate before saving it.\n"
+		} else {
+			set chain_str "${chain_str}INFO: Certificate is signed by a Certificate Authority (CA).\n"
+			set chain_str "${chain_str}INFO: It *WILL NOT* successfully authenticate when used as a ServerCert or Accepted-Cert.\n"
+			set chain_str "${chain_str}INFO: You need to Obtain and Save the CA's Certificate (issuer) instead"
+			if {$top_issuer != ""} {
+				set chain_str "${chain_str}:\nINFO: CA: $top_issuer\n"
+			} else {
+				set chain_str "${chain_str}.\n"
+			}
+		}
+		#puts "\n$chain_str\n"
+
 		global is_windows
 		set tmp "/tmp/cert.hsh.[tpid]"
 		set tmp [mytmp $tmp]
@@ -4837,9 +5195,9 @@ if [info exists env(CERTDBG)] {puts "\nFetch-2-\n$cert_text"}
 			if [regexp -nocase {SHA. Finger[^\n]*} $info mvar] {
 				set cert_text "$mvar\n\n$cert_text"
 			}
-			set cert_text "$cert_text\n\n----------------------------------\nOutput of x509 -text -fingerprint:\n\n$info"
+			set cert_text "$cert_text\n\n----------------------------------\nOutput of  openssl x509 -text -fingerprint:\n\n$info"
 		}
-		set cert_text "==== SSL Certificate from $hp ====\n\n$cert_text"
+		set cert_text "==== SSL Certificate from $hp ====\n\n$chain_str\n$cert_text"
 	}
 
 	if {! $save} {
@@ -4848,15 +5206,36 @@ if [info exists env(CERTDBG)] {puts "\nFetch-2-\n$cert_text"}
 
 	fetch_dialog $cert_text $hp $hpnew $ok $n
 }
+
+proc skip_non_self_signed {w hp} {
+	set msg "Certificate from $hp is not Self-Signed, it was signed by a Certificate Authority (CA).  Saving it does not make sense because it cannot be used to authenticate anything.  You need to Obtain and Save the CA Certificate instead.  Save it anyway?"
+	set reply [tk_messageBox -type okcancel -default cancel -parent $w -icon warning -message $msg -title "CA Signed Certificate"]
+	if {$reply == "cancel"} {
+		return 1
+	} else {
+		return 0
+	}
+}
 	
 proc fetch_dialog {cert_text hp hpnew ok n} {
 	toplev .fetch
 
+	if [small_height] {
+		set n 28
+	}
+
 	scroll_text_dismiss .fetch.f 90 $n
 
 	if {$ok} {
-		button .fetch.save -text Save -command "destroy .fetch; save_cert {$hpnew}"
-		button .fetch.help -text Help -command "help_fetch_cert"
+		set ss 0
+		if [regexp {INFO: SELF_SIGNED=1} $cert_text] {
+			button .fetch.save -text Save -command "destroy .fetch; save_cert {$hpnew}"
+			set ss 1
+		} else {
+			button .fetch.save -text Save -command "if \[skip_non_self_signed .fetch {$hpnew}\] {return} else {destroy .fetch; save_cert {$hpnew}}"
+			set ss 0
+		}
+		button .fetch.help -text Help -command "help_fetch_cert $ss"
 		pack .fetch.help .fetch.save -side bottom -fill x
 		.fetch.d configure -text "Cancel"
 	}
@@ -4869,7 +5248,11 @@ proc fetch_dialog {cert_text hp hpnew ok n} {
 }
 
 proc get_vencrypt_proxy {hpnew} {
+	if [regexp -nocase {^vnc://} $hpnew] {
+		return ""
+	}
 	set hpnew  [get_ssh_hp $hpnew]
+	regsub -nocase {^[A-z+]*://} $hpnew "" hpnew
 	set list [split $hpnew ":"] 
 	set h [lindex $list 0]
 	set p [lindex $list 1]
@@ -5001,7 +5384,7 @@ proc fetch_cert_windows {hp {vencrypt 0} {anondh 0}} {
 
 		set host $win_localhost
 		set port $port2
-		mesg "Starting TCP helper on port $port2 ..."
+		mesg "Starting Proxy TCP helper on port $port2 ..."
 		after 500
 		set proxy_pid [exec "connect_br.exe" &]
 
@@ -5131,14 +5514,20 @@ proc fetch_cert_windows {hp {vencrypt 0} {anondh 0}} {
 	return $text
 }
 
-proc check_accepted_certs {} {
+proc check_accepted_certs {{probe_only 0}} {
 	global cert_text always_verify_ssl
 	global skip_verify_accepted_certs use_listen
-	global ultra_dsm server_anondh env
+	global ultra_dsm env
+	global server_vencrypt server_anondh no_probe_vencrypt
 
 	if {! $always_verify_ssl} {
 		set skip_verify_accepted_certs 1
-		return 1
+		if {$server_vencrypt} {
+			return 1
+		}
+		if {$no_probe_vencrypt} {
+			return 1
+		}
 	}
 	if {$server_anondh} {
 		mesg "WARNING: Anonymous Diffie Hellman (SKIPPING CERT CHECK)"
@@ -5146,28 +5535,26 @@ proc check_accepted_certs {} {
 		set skip_verify_accepted_certs 1
 		return 1
 	}
-	if {$use_listen} {
+	if {$ultra_dsm} {
 		return 1;
 	}
-	if {$ultra_dsm} {
+	if {$use_listen} {
 		return 1;
 	}
 
 	global anon_dh_detected
 	set anon_dh_detected 0
-	global vencrypt_detected
-	set vencrypt_detected ""
 
 	set cert_text [fetch_cert 0]
 
 	set mvar ""
 	if {[regexp -nocase -line {cipher.*ADH} $cert_text mvar]} {
 
-if [info exists env(CERTDBG)] {puts "\nFetch-MSG-\n$cert_text"}
-if [info exists env(CERTDBG)] {puts "\nBEGIN_MVAR: $mvar\nEND_MVAR\n"}
+		if [info exists env(CERTDBG)] {puts "\nFetch-MSG-\n$cert_text"}
+		if [info exists env(CERTDBG)] {puts "\nBEGIN_MVAR: $mvar\nEND_MVAR\n"}
 
-		set msg "Anonymous Diffie-Hellman server detected.\nThere will be encryption, but no\nSSL/TLS authentication. Continue?"
-		set reply [tk_messageBox -type okcancel -icon warning -message $msg -title "Anonymous Diffie-Hellman Detected"]
+		set msg "Anonymous Diffie-Hellman server detected.  There will be encryption, but no SSL/TLS authentication. Continue?"
+		set reply [tk_messageBox -type okcancel -default ok -icon warning -message $msg -title "Anonymous Diffie-Hellman Detected"]
 		set anon_dh_detected 1
 		if {$reply == "cancel"} {
 			return 0
@@ -5178,14 +5565,50 @@ if [info exists env(CERTDBG)] {puts "\nBEGIN_MVAR: $mvar\nEND_MVAR\n"}
 		}
 	}
 
+	if {$probe_only} {
+		return 1
+	}
+	if {! $always_verify_ssl} {
+		return 1
+	}
+
 	set from ""
 	set fingerprint ""
 	set fingerline ""
+	set self_signed 1
+	set subject_issuer ""
+	set subject ""
+	set issuer ""
 
 	set i 0
 	foreach line [split $cert_text "\n"] {
 		incr i
-		if {$i > 4} {
+		if {$i > 50} {
+			break
+		}
+		if [regexp {^- subject: *(.*)$} $line m val] {
+			set val [string trim $val]
+			set subject_issuer "${subject_issuer}subject:$val\n"
+			set subject $val
+		}
+		if [regexp {^- (issuer[0-9][0-9]*): *(.*)$} $line m is val] {
+			set val [string trim $val]
+			set subject_issuer "${subject_issuer}$is:$val\n"
+			set issuer $val
+		}
+		if [regexp {^INFO: SELF_SIGNED=(.*)$} $line m val] {
+			set subject_issuer "${subject_issuer}SELF_SIGNED:$val\n"
+		}
+		if [regexp {^depth=} $line] {
+			break
+		}
+		if [regexp {^verify } $line] {
+			break
+		}
+		if [regexp {^CONNECTED} $line] {
+			break
+		}
+		if [regexp {^Certificate chain} $line] {
 			break
 		}
 		if [regexp {^==== SSL Certificate from (.*) ====} $line mv str] {
@@ -5194,6 +5617,9 @@ if [info exists env(CERTDBG)] {puts "\nBEGIN_MVAR: $mvar\nEND_MVAR\n"}
 		if [regexp -nocase {Fingerprint=(.*)} $line mv str] {
 			set fingerline $line
 			set fingerprint [string trim $str]
+		}
+		if [regexp -nocase {^INFO: SELF_SIGNED=([01])} $line mv str] {
+			set self_signed $str
 		}
 	}
 
@@ -5205,6 +5631,7 @@ if [info exists env(CERTDBG)] {puts "\nBEGIN_MVAR: $mvar\nEND_MVAR\n"}
 	regsub -all {^[+a-z]*://} $from "" from
 	regsub -all {:} $from "-" from
 	regsub -all {[\\/=]} $from "_" from
+	regsub -all {[ 	]} $from "_" from
 
 	if {$from == "" || $fingerprint == ""} {
 		bell
@@ -5229,33 +5656,26 @@ if [info exists env(CERTDBG)] {puts "\nBEGIN_MVAR: $mvar\nEND_MVAR\n"}
 	set crt "$adir/$from=$fingerprint.crt"
 
 	if [file exists $crt] {
-		mesg "OK: Certificate found in ACCEPTED_CERTS"
-		after 750
-		return 1
-	}
-
-	set crt_old "$adir/$fingerprint=$from.crt"
-
-	if [file exists $crt_old] {
-		mesg "OK: Certificate found in ACCEPTED_CERTS"
-		after 750
-		return 1
+		if {$self_signed} {
+			mesg "OK: Certificate found in ACCEPTED_CERTS"
+			after 750
+			return 1
+		}
 	}
 
 	set cnt 0
 	foreach f [glob -nocomplain -directory $adir "*$fingerprint*.crt"] {
 		mesg "CERT: $f"
 		after 150
-		incr cnt
+		if {$self_signed} {
+			incr cnt
+		}
 	}
 
 	set oth 0
 	set others [list]
 	foreach f [glob -nocomplain -directory $adir "*$from*.crt"] {
 		if {$f == $crt}  {
-			continue
-		}
-		if {$f == $crt_old}  {
 			continue
 		}
 		set fb [file tail $f]
@@ -5269,11 +5689,9 @@ if [info exists env(CERTDBG)] {puts "\nBEGIN_MVAR: $mvar\nEND_MVAR\n"}
 		lappend others $f
 		incr oth
 	}
+
 	foreach f [glob -nocomplain -directory $adir "*.crt"] {
 		if {$f == $crt}  {
-			continue
-		}
-		if {$f == $crt_old}  {
 			continue
 		}
 		set saw 0
@@ -5291,14 +5709,62 @@ if [info exists env(CERTDBG)] {puts "\nBEGIN_MVAR: $mvar\nEND_MVAR\n"}
 			continue
 		}
 		set same 0
+		set sub ""
+		set iss ""
+		set isn -1;
 		while {[gets $fh line] > -1} {
 			if [regexp {^Host-Display: (.*)$} $line mv hd] {
 				if {$hd == $hp || $hd == $from} {
 					set same 1
 				}
 			}
+			if [regexp {^subject:(.*)$} $line mv val] {
+				set sub $val
+			}
+			if [regexp {^issue([0-9][0-9]*):(.*)$} $line mv in val] {
+				if {$in > $isn} {
+					set isn $in
+					set iss $val
+				}
+			}
 		}
 		close $fh;
+
+		if {!$self_signed} {
+			if {$sub == ""} {
+				set ossl [get_openssl]
+				set si_txt [exec $ossl x509 -subject -issuer -noout -in $f]
+				foreach line [split $si_txt "\n"] {
+					if [regexp -nocase {^subject= *(.*)$} $line mv str] {
+						set str [string trim $str]
+						if {$str != ""} {
+							set sub $str
+						}
+					} elseif [regexp -nocase {^issuer= *(.*)$} $line mv str] {
+						set str [string trim $str]
+						if {$iss != ""} {
+							set iss $str
+						}
+					}
+				}
+			}
+			if {$issuer != "" && $sub != ""} {
+				global env
+				if [info exists env(CERTDBG)] {
+					puts "f: $f"
+					puts "s: $sub"
+					puts "i: $issuer"
+					puts "==================="
+				}
+				if {$issuer == $sub} {
+					set fb [file tail $f]
+					mesg "Certificate Authority (CA) CERT: $fb"
+					incr cnt
+					after 500 
+				}
+			}
+			continue
+		}
 
 		if {! $same} {
 			continue
@@ -5315,21 +5781,27 @@ if [info exists env(CERTDBG)] {puts "\nBEGIN_MVAR: $mvar\nEND_MVAR\n"}
 		lappend others $f
 		incr oth
 	}
+
 	if {$cnt > 0} {
-		mesg "OK: Certificate found in ACCEPTED_CERTS"
-		after 300
+		if {$self_signed} {
+			mesg "OK: Server Certificate found in ACCEPTED_CERTS"
+			after 400
+		} else {
+			mesg "OK: CA Certificate found in ACCEPTED_CERTS"
+			after 800
+		}
 		return 1
 	}
 
 	set hp2 [get_vncdisplay]
 	set msg "
-    The SSL Certificate from host:
+    The Self-Signed SSL Certificate from host:
 
         $hp2
 
-    with fingerprint:
+    Fingerprint: $fingerprint
 
-        $fingerprint
+    Subject: $subject
 
     is not present in the 'Accepted Certs' directory:
 
@@ -5340,16 +5812,56 @@ if [info exists env(CERTDBG)] {puts "\nBEGIN_MVAR: $mvar\nEND_MVAR\n"}
     sent to you by the server administrator).
 
 
-    Do you want this certificate to be saved in the accepted certs directory
-    and then used to SSL authenticate VNC servers?
+    THE QUESTION: Do you want this certificate to be saved in the Accepted Certs
+    directory and then used to SSL authenticate VNC servers?
+
 
     By clicking 'Inspect and maybe Save Cert' you will be given the opportunity
     to inspect the certificate before deciding to save it or not.
-
-    Choose 'Ignore Cert for One Connection' to connect a single time to the
-    server with NO certificate verification.  You will see this dialog again
-    the next time you connect to the same server.
 "
+
+	set msg_bottom "
+    Choose 'Ignore Cert for One Connection' to connect a single time to the
+    server with *NO* certificate authentication.  You will see this dialog again
+    the next time you connect to the same server.
+
+    Choose 'Continue as though I saved it' to launch stunnel and the VNC viewer.
+    Do this if you know the correct Certificate is in the 'Accepted Certs'
+    directory.  If it is not, stunnel will fail and report 'VERIFY ERROR:...'
+
+    Choose 'Cancel' to not connect to the VNC Server at all.
+"
+
+	set msg_ca "
+    The CA-signed SSL Certificate from host:
+
+        $hp2
+
+    Fingerprint: $fingerprint
+
+    Subject: $subject
+
+    Issuer:  $issuer
+
+    is signed by a Certificate Authority (CA) (the 'Issuer' above.)
+
+    However, the certificate of the CA 'Issuer' is not present in the
+    'Accepted Certs' directory:
+
+        $adir
+
+    You will need to obtain the certificate of the CA 'Issuer' via some means
+    (perhaps ask the VNC server administrator for it.)  Then, after you have
+    verified that the CA certificate is one that you trust, import the 
+    certificate via Certs -> Import Certificate.  Be sure to select to also
+    save it to the Accepted Certs directory so it will automatically be used.
+"
+	set msg "$msg$msg_bottom"
+	set msg_ca "$msg_ca$msg_bottom"
+
+	if {!$self_signed} {
+		set msg $msg_ca
+	}
 
 	if {$oth == 0} {
 		regsub {%WARN} $msg "" msg
@@ -5386,19 +5898,34 @@ if [info exists env(CERTDBG)] {puts "\nBEGIN_MVAR: $mvar\nEND_MVAR\n"}
 	foreach l [split $msg "\n"] {
 		incr n
 	}
+	if {!$self_signed} {
+		set n [expr $n + 2]
+	} else {
+		set n [expr $n + 1]
+	}
+	if [small_height] {
+		if {$n > 26} {
+			set n 26
+		}
+	}
 	toplev .acert
 	scroll_text .acert.f 83 $n
 
 	button .acert.inspect -text "Inspect and maybe Save Cert ..." -command "destroy .acert; set accept_cert_dialog 1"
 	button .acert.accept  -text "Ignore Cert for One Connection  " -command "destroy .acert; set accept_cert_dialog 2"
+	button .acert.continue -text "Continue as though I saved it     " -command "destroy .acert; set accept_cert_dialog 3"
 	button .acert.cancel -text "Cancel"   -command "destroy .acert; set accept_cert_dialog 0"
 
 	wm title .acert "Unrecognized SSL Cert!"
 
 	.acert.f.t insert end $msg
 
-	pack .acert.accept .acert.inspect .acert.cancel -side bottom -fill x
+	pack .acert.cancel .acert.continue .acert.accept .acert.inspect -side bottom -fill x
 	pack .acert.f -side top -fill both -expand 1
+
+	if {! $self_signed} {
+		catch {.acert.inspect configure -state disabled}
+	}
 
 	center_win .acert
 
@@ -5413,6 +5940,9 @@ if [info exists env(CERTDBG)] {puts "\nBEGIN_MVAR: $mvar\nEND_MVAR\n"}
 		set skip_verify_accepted_certs 1
 		return 1
 	}
+	if {$accept_cert_dialog == 3} {
+		return 1
+	}
 	if {$accept_cert_dialog != 1} {
 		return 0
 	}
@@ -5425,6 +5955,8 @@ if [info exists env(CERTDBG)] {puts "\nBEGIN_MVAR: $mvar\nEND_MVAR\n"}
 
 	global do_save_saved_it
 	set do_save_saved_it 0
+	global do_save_saved_hash_it
+	set do_save_saved_hash_it 0
 
 	fetch_dialog $cert_text $hp $hp 1 47 
 	update; after 150
@@ -5440,7 +5972,9 @@ if [info exists env(CERTDBG)] {puts "\nBEGIN_MVAR: $mvar\nEND_MVAR\n"}
 	set fetch_cert_filename ""
 	set accepted_cert_dialog_in_progress 0
 
-	save_hash $crt $adir $hp $fingerline $from $fingerprint
+	if {!$do_save_saved_hash_it} {
+		save_hash $crt $adir $hp $fingerline $from $fingerprint $subject_issuer
+	}
 
 	if {$do_save_saved_it} {
 		return 1
@@ -5449,7 +5983,7 @@ if [info exists env(CERTDBG)] {puts "\nBEGIN_MVAR: $mvar\nEND_MVAR\n"}
 	}
 }
 
-proc save_hash {crt adir hp fingerline from fingerprint} {
+proc save_hash {crt adir hp fingerline from fingerprint {subject_issuer ""}} {
 	if ![file exists $crt] {
 		return
 	}
@@ -5458,17 +5992,24 @@ proc save_hash {crt adir hp fingerline from fingerprint} {
 	set hash [string trim $hash]
 	if [regexp {^([0-9a-f][0-9a-f]*)} $hash mv h] {
 		set hashfile "$adir/$h.0"
+		set hn "$h.0"
 		if [file exists $hashfile] {
 			set hashfile "$adir/$h.1"
+			set hn "$h.1"
+			if [file exists $hashfile] {
+				set hashfile "$adir/$h.2"
+				set hn "$h.2"
+			}
 		}
 		set fh [open $crt "a"]
 		if {$fh != ""} {
 			puts $fh ""
-			puts $fh "SSVNC info:"
+			puts $fh "SSVNC-info:"
 			puts $fh "Host-Display: $hp"
 			puts $fh "$fingerline"
-			puts $fh "hash filename: $h.0"
-			puts $fh "full filename: $from=$fingerprint.crt"
+			puts $fh "hash-filename: $hn"
+			puts $fh "full-filename: $from=$fingerprint.crt"
+			puts -nonewline $fh $subject_issuer
 			close $fh
 		}
 		catch {file copy -force $crt $hashfile}
@@ -5620,11 +6161,14 @@ proc init_unixpw {hp} {
 }
 
 proc check_for_listen_ssl_cert {} {
-	global mycert use_listen use_ssh
+	global mycert use_listen use_ssh ultra_dsm
 	if {! $use_listen} {
 		return 1
 	}
 	if {$use_ssh} {
+		return 1
+	}
+	if {$ultra_dsm} {
 		return 1
 	}
 	if {$mycert != ""} {
@@ -5642,7 +6186,7 @@ proc check_for_listen_ssl_cert {} {
 
 	set title "SSL Listen requires MyCert";
 	set msg "In SSL Listen mode a cert+key is required, but you have not specified  'MyCert'.\n\nCreate a cert+key 'listen' now?"
-	set reply [tk_messageBox -type okcancel -icon warning -message $msg -title $msg]
+	set reply [tk_messageBox -type okcancel -default ok -icon warning -message $msg -title $msg]
 	if {$reply == "cancel"} {
 		return 0
 	}
@@ -5661,7 +6205,7 @@ proc listen_verify_all_dialog {hp} {
 	global use_listen always_verify_ssl
 	global did_listen_verify_all_dialog
 	global svcert
-	global sshssl_sw
+	global sshssl_sw ultra_dsm
 
 	if {!$use_listen} {
 		return 1
@@ -5670,6 +6214,9 @@ proc listen_verify_all_dialog {hp} {
 		return 1
 	}
 	if {$svcert != ""} {
+		return 1
+	}
+	if {$ultra_dsm} {
 		return 1
 	}
 	if [regexp -nocase {^vnc://} $hp] {
@@ -5754,6 +6301,7 @@ proc reset_stunnel_extra_opts {} {
 	catch { unset env(VNCVIEWER_NOTTY) }
 	catch { unset env(SSVNC_ACCEPT_POPUP)    }
 	catch { unset env(SSVNC_ACCEPT_POPUP_SC) }
+	catch { unset env(SSVNC_KNOWN_HOSTS_FILE)    }
 }
 
 proc maybe_add_vencrypt {proxy hp} {
@@ -5775,28 +6323,60 @@ proc maybe_add_vencrypt {proxy hp} {
 	return $proxy
 }
 
+proc no_certs_tutorial_mesg {} {
+	global svcert crtdir
+	global server_anondh 
+	global always_verify_ssl
+
+	set doit 0
+	if {!$always_verify_ssl} {
+		if {$svcert == ""} {
+			if {$crtdir == "" || $crtdir == "ACCEPTED_CERTS"} {
+				set doit 1
+			}
+		}
+	} elseif {$server_anondh} {
+		set doit 1
+	}
+	if {$doit} {
+		mesg "INFO: without Certificate checking man-in-the-middle attack is possible."
+	} else {
+		set str ""
+		catch {set str [.l cget -text]}
+		if {$str != "" && [regexp {^INFO: without Certificate} $str]} {
+			mesg ""
+		}
+	}
+}
+
 proc vencrypt_tutorial_mesg {} {
-	global always_verify_ssl svcert
 	global use_ssh use_sshssl use_listen
-	global server_vencrypt
-	
+	global server_vencrypt no_probe_vencrypt
+	global ultra_dsm 
+
 	set m ""
 	if {$use_ssh} {
 		;
 	} elseif {$server_vencrypt} {
 		;
+	} elseif {$ultra_dsm} {
+		;
 	} elseif {$use_listen} {
-		set m "NO VeNCrypt Auto-Detection:  Listen mode."
+		set m "No VeNCrypt Auto-Detection:  Listen mode."
 	} elseif {$use_sshssl} {
-		set m "NO VeNCrypt Auto-Detection:  SSH+SSL mode."
-	} elseif {$svcert != "" || !$always_verify_ssl} {
-		set m "NO VeNCrypt Auto-Detection: 'Verify All Certs' disabled"
+		set m "No VeNCrypt Auto-Detection:  SSH+SSL mode."
+	} elseif {$no_probe_vencrypt} {
+		set m "No VeNCrypt Auto-Detection:  Disabled."
 	}
 	if {$m != ""} {
 		mesg $m
 		after 1000
 	}
 	return $m
+
+	#global svcert always_verify_ssl
+	#$svcert != "" || !$always_verify_ssl
+	#	set m "No VeNCrypt Auto-Detection: 'Verify All Certs' disabled"
 }
 
 proc launch_unix {hp} {
@@ -5913,7 +6493,9 @@ proc launch_unix {hp} {
 		}
 	}
 	if {$ultra_dsm} {
-		if {![file exists $ultra_dsm_file] && ![regexp {pw=} $ultra_dsm_file]} {
+		if {$ultra_dsm_type == "securevnc"} {
+			;
+		} elseif {![file exists $ultra_dsm_file] && ![regexp {pw=} $ultra_dsm_file]} {
 			mesg "DSM key file does exist: $ultra_dsm_file" 
 			bell
 			after 1000
@@ -5923,6 +6505,12 @@ proc launch_unix {hp} {
 		if {$ultra_dsm_file == "pw=VNCPASSWORD" || $ultra_dsm_file == "pw=VNCPASSWD"} {
 			if {![info exists vncauth_passwd] || $vncauth_passwd == ""} {
 				mesg "For DSM pw=VNCPASSWD you must supply the VNC Password" 
+				bell
+				after 1000
+				return
+			}
+			if [regexp {'} $vncauth_passwd] {
+				mesg "For DSM pw=VNCPASSWD password must not contain single quotes." 
 				bell
 				after 1000
 				return
@@ -5946,9 +6534,13 @@ proc launch_unix {hp} {
 			}
 		}
 		if {$ultra_dsm_file == "pw=VNCPASSWORD" || $ultra_dsm_file == "pw=VNCPASSWD"} {
-			append dsm " pw=$vncauth_passwd"
+			append dsm " pw='$vncauth_passwd'"
 		} else {
-			append dsm " $ultra_dsm_file"
+			if {$ultra_dsm_file == "" && $ultra_dsm_type == "securevnc"} {
+				append dsm " none"
+			} else {
+				append dsm " $ultra_dsm_file"
+			}
 		}
 		set env(SSVNC_ULTRA_DSM) $dsm
 	}
@@ -6000,7 +6592,9 @@ proc launch_unix {hp} {
 		set sshcmd [get_ssh_cmd $hp]
 
 		if {$use_sshssl} {
-			set proxy [maybe_add_vencrypt $proxy $hp]
+			if {!$do_direct} {
+				set proxy [maybe_add_vencrypt $proxy $hp]
+			}
 		}
 
 		if {$ts_only} {
@@ -6177,6 +6771,7 @@ proc launch_unix {hp} {
 		}
 
 		if {! $do_direct && ! $ultra_dsm && ![regexp -nocase {ssh://} $hpnew]} {
+			set did_check 0
 			if {$mycert != ""} {
 				set cmd "$cmd -mycert '$mycert'"
 			}
@@ -6189,7 +6784,9 @@ proc launch_unix {hp} {
 				if {$crtdir == "ACCEPTED_CERTS"} {
 					global skip_verify_accepted_certs
 					set skip_verify_accepted_certs 0
-					if {! [check_accepted_certs]} {
+
+					set did_check 1
+					if {! [check_accepted_certs 0]} {
 						reset_stunnel_extra_opts
 						return
 					}
@@ -6199,13 +6796,19 @@ proc launch_unix {hp} {
 						catch {file mkdir $adir}
 						set cmd "$cmd -verify '$adir'"
 					}
+
 				} else {
 					set cmd "$cmd -verify '$crtdir'"
 				}
 			}
+			if {! $did_check} {
+				check_accepted_certs 1
+			}
 		}
 
-		set proxy [maybe_add_vencrypt $proxy $hp]
+		if {!$do_direct} {
+			set proxy [maybe_add_vencrypt $proxy $hp]
+		}
 
 		if {$proxy != ""} {
 			set cmd "$cmd -proxy '$proxy'"
@@ -6227,7 +6830,9 @@ proc launch_unix {hp} {
 
 	global anon_dh_detected
 	if {$anon_dh_detected || $server_anondh} {
-		set cmd "$cmd -anondh"
+		if {!$do_direct} {
+			set cmd "$cmd -anondh"
+		}
 		set anon_dh_detected 0
 	}
 	if {$use_alpha} {
@@ -6244,6 +6849,9 @@ proc launch_unix {hp} {
 	}
 	if {$disable_pipeline} {
 		set env(VNCVIEWER_NO_PIPELINE_UPDATES) 1
+	}
+	if {$ssh_known_hosts_filename != ""} {
+		set env(SSVNC_KNOWN_HOSTS_FILE) $ssh_known_hosts_filename
 	}
 	if {$use_grab} {
 		set cmd "$cmd -grab"
@@ -6610,8 +7218,16 @@ proc launch_unix {hp} {
 		set hptx "$hp (Press Ctrl-C to Stop Listening)"
 	}
 
+
+	set s1 5
+	set s2 4
+	if [info exists env(SSVNC_FINISH_SLEEP)] {
+		set s1 $env(SSVNC_FINISH_SLEEP);
+		set s2 $s1
+	}
+
 	unix_terminal_cmd $geometry "$sstx $hptx" \
-	"$te$cmd; set +xv; ulimit -c 0; trap 'printf \"Paused. Press Enter to exit:\"; read x' QUIT; echo; echo $m; echo; echo sleep 5; echo; sleep 4" 0 $xrm1 $xrm2 $xrm3
+	"$te$cmd; set +xv; ulimit -c 0; trap 'printf \"Paused. Press Enter to exit:\"; read x' QUIT; echo; echo $m; echo; echo sleep $s1; echo; sleep $s2" 0 $xrm1 $xrm2 $xrm3
 
 	set env(SS_VNCVIEWER_SSH_CMD) ""
 	set env(SS_VNCVIEWER_USE_C) ""
@@ -6773,9 +7389,9 @@ proc launch_shell_only {} {
 proc to_sshonly {} {
 	global ssh_only ts_only env
 	global showing_no_encryption
-	if {$showing_no_encryption} {
-		toggle_no_encryption
-	}
+	#if {$showing_no_encryption} {
+	#	toggle_no_encryption
+	#}
 	if {$ssh_only && !$ts_only} {
 		return
 	}
@@ -6824,9 +7440,9 @@ proc toggle_sshonly {} {
 proc to_tsonly {} {
 	global ts_only
 	global showing_no_encryption
-	if {$showing_no_encryption} {
-		toggle_no_encryption
-	}
+	#if {$showing_no_encryption} {
+	#	toggle_no_encryption
+	#}
 	if {$ts_only} {
 		return
 	}
@@ -6872,6 +7488,11 @@ proc to_ssvnc {} {
 	catch {pack configure .b.certs -before .b.opts -side left -expand 1 -fill x}
 	catch {.l configure -text $t}
 	catch {.f0.l configure -text "VNC Host:Display"}
+
+	#global started_with_noenc
+	#if {$started_with_noenc} {
+	#	toggle_no_encryption
+	#}
 
 	global vncdisplay vncauth_passwd unixpw_username vncproxy remote_ssh_cmd
 	set vncdisplay ""
@@ -6942,6 +7563,24 @@ proc launch {{hp ""}} {
 		set t [string trim $t]
 		set env(SSVNC_EXTRA_SLEEP) $t
 		mesg "set SSVNC_EXTRA_SLEEP to $t"
+		set vncdisplay ""
+		return 0
+	}
+	if {[regexp {^SSH=} $hpt]} {
+		set t $hpt
+		regsub {^.*SSH=} $t "" t
+		set t [string trim $t]
+		set env(SSH) $t
+		mesg "set SSH to $t"
+		set vncdisplay ""
+		return 0
+	}
+	if {[regexp {^FINISH=} $hpt] || [regexp {^SSVNC_FINISH_SLEEP=} $hpt]} {
+		set t $hpt
+		regsub {^.*=} $t "" t
+		set t [string trim $t]
+		set env(SSVNC_FINISH_SLEEP) $t
+		mesg "set SSVNC_FINISH_SLEEP to $t"
 		set vncdisplay ""
 		return 0
 	}
@@ -7052,7 +7691,9 @@ proc launch {{hp ""}} {
 	# WINDOWS BELOW:
 
 	if [regexp {^vnc://} $hp] {
-		direct_connect_msg
+		if {! [info exists env(SSVNC_NO_ENC_WARN)]} {
+			direct_connect_msg
+		}
 		regsub {^vnc://} $hp "" hp
 		direct_connect_windows $hp
 		return
@@ -7139,8 +7780,22 @@ proc launch {{hp ""}} {
 		return
 	}
 
+	global port_slot
+	if {$port_slot != ""} {
+		set file1 "$prefix-$port_slot.$suffix"
+		set n1 $port_slot
+		set ps [expr $port_slot + 200]
+		set file2 "$prefix-$ps.$suffix"
+		set n2 $ps
+		mesg "Using Port Slot: $port_slot"
+		after 700
+	}
+
 	for {set i 30} {$i <= 99} {incr i}  {
 		set try "$prefix-$i.$suffix"
+		if {$i == $port_slot} {
+			continue
+		}
 		if {[file exists $try]}  {
 			set mt [file mtime $try]
 			set age [expr "$now - $mt"]
@@ -7293,6 +7948,8 @@ proc launch {{hp ""}} {
 		}
 	}
 
+	set did_check 0
+
 	if {$svcert != ""} {
 		if {! [file exists $svcert]} {
 			mesg "ServerCert does not exist: $svcert"
@@ -7305,9 +7962,11 @@ proc launch {{hp ""}} {
 		if {$crtdir == "ACCEPTED_CERTS"} {
 			global skip_verify_accepted_certs
 			set skip_verify_accepted_certs 0
+			set did_check 1
 			if {$use_sshssl} {
 				set skip_verify_accepted_certs 1
-			} elseif {! [check_accepted_certs]} {
+				set did_check 0
+			} elseif {! [check_accepted_certs 0]} {
 				set fail 1
 			}
 			if {! $skip_verify_accepted_certs} {
@@ -7326,6 +7985,10 @@ proc launch {{hp ""}} {
 			puts $fh "CApath = $crtdir"
 			puts $fh "verify = 2"
 		}
+	}
+
+	if {!$did_check} {
+		check_accepted_certs 1
 	}
 
 	if {$use_sshssl} {
@@ -7435,7 +8098,7 @@ proc launch {{hp ""}} {
 			set proxy_pid2 [exec "connect_br.exe" &]
 			catch { unset env(SSVNC_VENCRYPT_VIEWER_BRIDGE) }
 		}
-		mesg "Starting TCP helper on port $port ..."
+		mesg "Starting VeNCrypt TCP helper on port $port ..."
 		after 500
 		set proxy_pid [exec "connect_br.exe" &]
 		catch { unset env(SSVNC_PROXY) }
@@ -7592,7 +8255,7 @@ proc direct_connect_windows {{hp ""}} {
 
 	set proxy_pid ""
 	if {$proxy != ""} {
-		mesg "Starting TCP helper on port $port ..."
+		mesg "Starting Proxy TCP helper on port $port ..."
 		after 500
 		set proxy_pid [exec "connect_br.exe" &]
 		catch { unset env(SSVNC_PROXY) }
@@ -7808,6 +8471,64 @@ proc set_ultra_dsm_file {{parent "."}} {
 	update 
 }
 
+proc set_ssh_known_hosts_file {{parent "."}} {
+	global ssh_known_hosts_filename is_windows uname
+
+	if {$ssh_known_hosts_filename == ""} {
+		set pdir [get_profiles_dir]
+		set pdir "$pdir/ssh_known_hosts"
+		catch {file mkdir $pdir}
+
+		global last_load
+		if {![info exists last_load]} {
+			set last_load ""
+		}
+		if {$last_load != ""} {
+			set dispf [string trim $last_load]
+			set dispf [file tail $dispf]
+			
+			regsub {\.vnc$} $dispf "" dispf
+			if {![regexp {\.known$} $dispf]} {
+				set dispf "$dispf.known"
+			}
+			set guess $dispf
+		} else {
+			set vncdisp [get_vncdisplay]
+			set dispf [string trim $vncdisp]
+			if {$dispf != ""} {
+				regsub {[ 	].*$} $dispf "" dispf
+				regsub -all {/} $dispf "" dispf
+			} else {
+				set dispf "unique-name-here"
+			}
+			if {$is_windows || $uname == "Darwin"} {
+				regsub -all {:} $dispf "-" dispf
+			} else {
+				regsub -all {:} $dispf "-" dispf
+			}
+			if {![regexp {\.known$} $dispf]} {
+				set dispf "$dispf.known"
+			}
+			set guess $dispf
+		}
+	} else {
+		set pdir [file dirname $ssh_known_hosts_filename]
+		set guess [file tail $ssh_known_hosts_filename]
+	}
+
+	set t ""
+	unix_dialog_resize $parent
+	if {$pdir != ""} {
+		set t [tk_getSaveFile -parent $parent -initialdir $pdir -initialfile $guess]
+	} else {
+		set t [tk_getSaveFile -parent $parent -initialfile $guess]
+	}
+	if {$t != ""} {
+		set ssh_known_hosts_filename $t
+	}
+	update 
+}
+
 proc show_cert {crt} {
 	if {$crt == ""} {
 		bell
@@ -7893,6 +8614,7 @@ proc v_svcert {} {
 	} else {
 		catch {.c.svcert.i configure -state normal}
 	}
+	no_certs_tutorial_mesg
 	return 1
 }
 
@@ -8323,14 +9045,16 @@ proc create_cert {{name ""}} {
 	wm title .ccrt "Create SSL Certificate"
 
 	global uname
-	if {$uname == "Darwin"} {
-		scroll_text .ccrt.f 80 20
-	} else {
-		scroll_text .ccrt.f 80 30
+	set h 27
+	if [small_height] {
+		set h 14
+	} elseif {$uname == "Darwin"} {
+		set h 20
 	}
+	scroll_text .ccrt.f 80 $h
 
 	set msg {
-    This dialog helps you to create a simple self-signed SSL certificate.  
+    This dialog helps you to create a simple Self-Signed SSL certificate.  
 
     On Unix the openssl(1) program must be installed and in $PATH.
     On Windows, a copy of the openssl program is provided for convenience.
@@ -8395,7 +9119,7 @@ proc create_cert {{name ""}} {
            http://www.karlrunge.com/x11vnc/faq.html#faq-ssl-tunnel-int
 
     The first one describes how to use x11vnc to create Certificate
-    Authority (CA) certificates in addition to self-signed ones.
+    Authority (CA) certificates in addition to Self-Signed ones.
 
 
     Tip: if you choose the "Common Name" to be the internet hostname
@@ -8571,9 +9295,26 @@ proc do_save {par} {
 	}
 
 	set str ""
+	set subject_issuer ""
 	if {$import_mode == "save_cert_text"} {
 		global save_cert_text
 		set str $save_cert_text
+		set i 0
+		foreach line [split $str "\n"] {
+			incr i
+			if {$i > 50} {
+				break
+			}
+			if [regexp {^- subject: *(.*)$} $line m val] {
+				set subject_issuer "${subject_issuer}subject:$val\n"
+			}
+			if [regexp {^- (issuer[0-9][0-9]*): *(.*)$} $line m is val] {
+				set subject_issuer "${subject_issuer}$is:$val\n"
+			}
+			if [regexp {^INFO: SELF_SIGNED=(.*)$} $line m val] {
+				set subject_issuer "${subject_issuer}SELF_SIGNED:$val\n"
+			}
+		}
 	} elseif {$import_mode == "paste"} {
 		set str [$par.paste.t get 1.0 end]
 	} else {
@@ -8613,9 +9354,9 @@ proc do_save {par} {
 	set deltmp ""
 	if {$import_save_file == ""} {
 		if {! $is_windows} {
-			set deltmp /tmp/itmp.[tpid]
+			set deltmp /tmp/import.[tpid]
 		} else {
-			set deltmp itmp.[tpid]
+			set deltmp import.[tpid]
 		}
 		set deltmp [mytmp $deltmp]
 		set import_save_file $deltmp
@@ -8654,7 +9395,7 @@ proc do_save {par} {
 		set i 0
 		foreach line [split $fp_txt "\n"] {
 			incr i
-			if {$i > 4} {
+			if {$i > 5} {
 				break
 			}
 			if [regexp -nocase {Fingerprint=(.*)} $line mv str] {
@@ -8667,8 +9408,39 @@ proc do_save {par} {
 		regsub -all {:} $fingerprint "-" fingerprint
 		regsub -all {[\\/=]} $fingerprint "_" fingerprint
 
+		if {$subject_issuer == ""} {
+			set si_txt ""
+			set si_txt [exec $ossl x509 -subject -issuer -noout -in $import_save_file]
+			set sub ""
+			set iss ""
+			foreach line [split $si_txt "\n"] {
+				if [regexp -nocase {^subject= *(.*)$} $line mv str] {
+					set str [string trim $str]
+					set sub $str
+				} elseif [regexp -nocase {^issuer= *(.*)$} $line mv str] {
+					set str [string trim $str]
+					set iss $str
+				}
+			}
+			if {$sub != "" && $iss != ""} {
+				set subject_issuer "subject:$sub\nissuer1:$iss\n"
+				if {$sub == $iss} {
+					set subject_issuer "${subject_issuer}SELF_SIGNED:1\n"
+				} else {
+					set subject_issuer "${subject_issuer}SELF_SIGNED:0\n"
+				}
+			}
+		}
+
 		global vncdisplay
 		set from [get_ssh_hp $vncdisplay]
+		if {$from == ""} {
+			set from [file tail $import_save_file]
+			regsub {\..*$} $from "" from
+		}
+		if {$from == ""} {
+			set from "import"
+		}
 		if [regexp -- {^:[0-9][0-9]*$} $from] {
 			set from "listen$from"
 		}
@@ -8678,11 +9450,14 @@ proc do_save {par} {
 		regsub -all {^[+a-z]*://} $from "" from
 		regsub -all {:} $from "-" from
 		regsub -all {[\\/=]} $from "_" from
+		regsub -all {[ 	]} $from "_" from
 
 		set crt "$adir/$from=$fingerprint.crt"
 		catch {file copy -force $import_save_file $crt}
 
-		save_hash $crt $adir $hp $fingerline $from $fingerprint
+		global do_save_saved_hash_it
+		set do_save_saved_hash_it 1
+		save_hash $crt $adir $hp $fingerline $from $fingerprint $subject_issuer
 	}
 
 	catch {destroy $par}
@@ -8718,11 +9493,13 @@ proc import_cert {} {
 	global scroll_text_focus
 	set scroll_text_focus 0
 	global uname
-	if {$uname == "Darwin"} {
-		scroll_text .icrt.f 90 16
-	} else {
-		scroll_text .icrt.f 90 20
+	set h 19
+	if [small_height] {
+		set h 12
+	} elseif {$uname == "Darwin"} {
+		set h 16
 	}
+	scroll_text .icrt.f 90 $h
 	set scroll_text_focus 1
 
 	set msg {
@@ -8796,12 +9573,14 @@ TCQ+tbQ/DOiTXGKx1nlcKoPdkG+QVQVJthlQcpam
 	$w.b configure -state disabled
 	$w.e configure -state disabled
 
-	label .icrt.plab -anchor w -text "Paste Certificate here:" 
-	if {$uname == "Darwin"} {
-		scroll_text .icrt.paste 90 11
-	} else {
-		scroll_text .icrt.paste 90 22
+	label .icrt.plab -anchor w -text "Paste Certificate here:     (extra blank lines above or below are OK)" 
+	set h 22
+	if [small_height] {
+		set h 11
+	} elseif {$uname == "Darwin"} {
+		set h 11
 	}
+	scroll_text .icrt.paste 90 $h
 
 	button .icrt.cancel -text "Cancel" -command {destroy .icrt; catch {raise .c}}
 	bind .icrt <Escape> {destroy .icrt; catch {raise .c}}
@@ -8818,11 +9597,16 @@ TCQ+tbQ/DOiTXGKx1nlcKoPdkG+QVQVJthlQcpam
 	entry $w.e -width 40 -textvariable import_save_file
 	button $w.b -pady 1 -anchor w -text "Browse..." -command import_save_browse
 
+	global also_save_to_accepted_certs
+	set also_save_to_accepted_certs 0
+	checkbutton .icrt.ac -anchor w -variable also_save_to_accepted_certs -text \
+	    "Also Save to the 'Accepted Certs' directory" -relief raised
+
 	pack $w.b -side right
 	pack $w.l -side left
 	pack $w.e -side left -expand 1 -fill x
 
-	pack .icrt.save .icrt.cancel .icrt.sf .icrt.mf -side bottom -fill x
+	pack .icrt.save .icrt.cancel .icrt.ac .icrt.sf .icrt.mf -side bottom -fill x
 	pack .icrt.paste .icrt.plab -side bottom -fill x
 
 	pack .icrt.f -side top -fill both -expand 1
@@ -8836,21 +9620,32 @@ TCQ+tbQ/DOiTXGKx1nlcKoPdkG+QVQVJthlQcpam
 
 proc save_cert {hp} {
 
+	global cert_text
+
 	toplev .scrt
-	wm title .scrt "Import SSL Certificate"
+	wm title .scrt "Import/Save SSL Certificate"
 
 	global scroll_text_focus
 	set scroll_text_focus 0
 	global uname
 
 	global accepted_cert_dialog_in_progress
+	set h 20
 	if {$accepted_cert_dialog_in_progress} {
 		set mode "accepted"
-		scroll_text .scrt.f 90 15
+		set h 15
+		if [small_height] {
+			set h 11
+		}
 	} else {
 		set mode "normal"
-		scroll_text .scrt.f 90 20
+		set h 20
+		if [small_height] {
+			set h 16
+		}
 	}
+	scroll_text .scrt.f 90 $h
+
 	set scroll_text_focus 1
 
 	set msg1 {
@@ -8885,7 +9680,7 @@ proc save_cert {hp} {
 
     Click on "Save" to add it to the Accepted Certs.
 
-    It, and the others certs in that directory, will be used to authenticate
+    It, and the other certs in that directory, will be used to authenticate
     any VNC Server that has "ACCEPTED_CERTS" as the "CertsDir" value in the
     "Certs..." dialog.  This is the default checking policy.
 }
@@ -8907,7 +9702,11 @@ proc save_cert {hp} {
 	set import_file ""
 	entry $w.e -width 40 -textvariable import_file
 
-	scroll_text .scrt.paste 90 23
+	set h 22
+	if [small_height] {
+		set h 10
+	}
+	scroll_text .scrt.paste 90 $h
 
 	button .scrt.cancel -text "Cancel" -command {destroy .scrt; catch {raise .c}}
 	bind .scrt <Escape> {destroy .scrt; catch {raise .c}}
@@ -8920,7 +9719,6 @@ proc save_cert {hp} {
 		button .scrt.save -text "Save" -command {do_save .scrt}
 	}
 
-	global cert_text
 	if [regexp -nocase -- {ACCEPT} $cert_text] {
 		if [regexp -nocase -- {Client certificate} $cert_text] {
 			if [regexp -- {^:[0-9][0-9]*$} $hp] {
@@ -9478,7 +10276,6 @@ proc load_profile {{parent "."} {infile ""}} {
 
 	global last_load
 	set last_load [file tail $file]
-##	regsub {\.vnc$} $last_load "" last_load
 
 	global uname darwin_cotvnc
 	if {$uname == "Darwin"} {
@@ -9521,7 +10318,6 @@ proc save_profile {{parent "."}} {
 
 	set vncdisp [get_vncdisplay]
 
-
 	set dispf [string trim $vncdisp]
 	if {$dispf != ""} {
 		regsub {[ 	].*$} $dispf "" dispf
@@ -9560,9 +10356,6 @@ proc save_profile {{parent "."}} {
 		set profdone 1
 		return
 	}
-	#if {$file == $last_load && ![regexp {\.vnc$} $file]} {
-	#	set file "$file.vnc"
-	#}
 	set fh [open $file "w"]
 	if {! [info exists fh]} {
 		set profdone 1
@@ -9624,14 +10417,14 @@ proc save_profile {{parent "."}} {
 	if {$include_list != ""} {
 		load_include $include_list [get_profiles_dir]
 	}
+	global sshssl_sw
 	if {! $use_ssl && ! $use_ssh && ! $use_sshssl} {
-		global sshssl_sw
 		if {$sshssl_sw == "none"} {
 			set disable_all_encryption 1
 		}
 	}
 
-	global ts_only
+	global ts_only ssh_only
 	if {$ts_only} {
 		set ts_mode 1
 	} else {
@@ -9642,6 +10435,9 @@ proc save_profile {{parent "."}} {
 		set pre ""
 		if {$val == $defs($var)} {
 			set pre "#"
+		}
+		if {$ssh_only && $var == "use_ssh"} {
+			set pre ""
 		}
 		set pct 0
 		if {$var == "smb_mount_list"} {
@@ -9669,7 +10465,6 @@ proc save_profile {{parent "."}} {
 
 	mesg "Saved Profile: [file tail $file]"
 
-	global last_load
 	set last_load [file tail $file]
 
 	set profdone 1
@@ -10622,7 +11417,11 @@ proc ts_xlogin_dialog {} {
 	toplev .xlog
 	wm title .xlog "X Login Greeter"
 
-	scroll_text .xlog.f 80 33
+	set h 33
+	if [small_height] {
+		set h 28
+	}
+	scroll_text .xlog.f 80 $h
 
 	global ts_xlogin
 
@@ -10833,7 +11632,11 @@ proc ts_x11vnc_opts_dialog {} {
 	toplev .x11v
 	wm title .x11v "x11vnc Options"
 
-	scroll_text .x11v.f 80 23
+	set h 23
+	if [small_height] {
+		set h 21
+	}
+	scroll_text .x11v.f 80 $h
 
 	global ts_x11vnc_opts ts_x11vnc_path ts_x11vnc_autoport choose_x11vnc_opts
 	global additional_port_redirs_list
@@ -10963,7 +11766,11 @@ proc ts_cups_dialog {} {
 	global cups_local_server cups_remote_port cups_manage_rcfile ts_cups_manage_rcfile cups_x11vnc
 	global cups_local_smb_server cups_remote_smb_port
 
-	scroll_text .cups.f 80 30
+	set h 30
+	if [small_height] {
+		set h 24
+	}
+	scroll_text .cups.f 80 $h
 		
 
 	set msg {
@@ -11108,11 +11915,13 @@ proc cups_dialog {} {
 	}
 
 	global uname
-	if {$uname == "Darwin"} {
-		scroll_text .cups.f 80 25
-	} else {
-		scroll_text .cups.f
+	set h 33
+	if [small_height] {
+		set h 17
+	} elseif {$uname == "Darwin"} {
+		set h 24
 	}
+	scroll_text .cups.f 80 $h
 		
 
 	set msg {
@@ -11474,11 +12283,13 @@ proc sound_dialog {} {
 	wm title .snd "ESD/ARTSD Sound Tunnelling"
 
 	global uname
-	if {$uname == "Darwin"} {
-		scroll_text .snd.f 80 20
-	} else {
-		scroll_text .snd.f 80 30
+	set h 28
+	if [small_height] {
+		set h 14
+	} elseif {$uname == "Darwin"} {
+		set h 20
 	}
+	scroll_text .snd.f 80 $h
 
 	set msg {
     Sound tunnelling to a sound daemon requires SSH be used to set up the
@@ -12029,7 +12840,11 @@ proc smb_help_me_decide {} {
 	wm title .smbwiz $title
 	set id "  "
 
-	scroll_text .smbwiz.f 100 40
+	set h 40
+	if [small_height] {
+		set h 30
+	}
+	scroll_text .smbwiz.f 100 $h
 
 	set msg {
 For now you will have to verify the following information manually.
@@ -12243,11 +13058,13 @@ proc smb_dialog {} {
 	global help_font
 
 	global uname
-	if {$uname == "Darwin"} {
-		scroll_text .smb.f 80 25
-	} else {
-		scroll_text .smb.f
+	set h 33
+	if [small_height] {
+		set h 17
+	} elseif {$uname == "Darwin"} {
+		set h 24
 	}
+	scroll_text .smb.f 80 $h
 
 	set msg {
     Windows/Samba Filesystem mounting requires SSH be used to set up the SMB
@@ -12439,6 +13256,36 @@ proc help_advanced_opts {} {
          See the 'X Login' description in 'Terminal Services' Mode
          Help for more info.
 
+      Private SSH KnownHosts file:
+
+         On Unix in SSH mode, let the user specify a non-default
+         ssh known_hosts file to be used only by the current profile.
+         This is the UserKnownHostsFile ssh option and is described in the
+         ssh_config(1) man page.  This is useful to avoid proxy 'localhost'
+         SSH key collisions.
+
+         Normally one should simply let ssh use its default file
+         ~/.ssh/known_hosts for tracking SSH keys.  The only problem that
+         happens is when multiple SSVNC connections use localhost tunnel
+         port redirections.  These make ssh connect to 'localhost' on some
+         port (where the proxy is listening.)  Then the different keys
+         from the multiple ssh servers collide when ssh saves them under
+         'localhost' in ~/.ssh/known_hosts.
+
+         So if you are using a proxy with SSVNC or doing a "double SSH
+         gateway" your ssh will connect to a proxy port on localhost, and you
+         should set a private KnownHosts file for that connection profile.
+         This is secure and avoids man-in-the-middle attack (as long as
+         you actually verify the initial save of the SSH key!)
+
+         The default file location will be:
+
+                  ~/.vnc/ssh_known_hosts/profile-name.known
+
+         but you can choose any place you like.  It must of course be
+         unique and not shared with another ssh connection otherwise they
+         both may complain about the key for 'localhost' changing, etc.
+
       SSH Local Port Protections:
 
          An LD_PRELOAD hack to limit the number of SSH port redirections
@@ -12470,6 +13317,31 @@ proc help_advanced_opts {} {
          is enabled.  Support for secret key encryption to Non-UltraVNC
          DSM servers is also supported, e.g. x11vnc -enc blowfish:my.key
 
+      Do not Probe for VeNCrypt:
+
+         Disable VeNCrypt auto-detection probe when not needed.
+
+         By default in SSL mode an initial probe for the use of the
+         VeNCrypt or ANONTLS protocol is performed.  This is done
+         during the initial fetch-cert action.  Once auto-detected in
+         the initial probe, the real connection to the VNC Server will
+         use this information to switch to SSL/TLS at the right point in
+         the VeNCrypt/ANONTLS handshake.
+
+         In "Verify All Certs" mode initial the fetch-cert action is
+         required so the automatic probing for VeNCrypt is always done.
+         The fetch-cert is not needed if you specified a ServerCert or if
+         you disabled "Verify All Certs".  But by default the fetch-cert
+         is done anyway to try to auto-detect VeNCrypt/ANONTLS.
+
+         Set 'Do not Probe for VeNCrypt' to skip this unneeded fetch-cert
+         action (and hence speed up connecting.)  Use this if you
+         know the VNC Server uses normal SSL and not VeNCrypt/ANONTLS.
+
+         See also the next option, 'Server uses VeNCrypt SSL encryption'
+         to if you know it uses VeNCrypt/ANONTLS (the probing will also
+         be skipped if that option is set.)
+         
       Server uses VeNCrypt SSL encryption:
 
          Indicate that the VNC server uses the VeNCrypt extension to VNC;
@@ -12481,28 +13353,19 @@ proc help_advanced_opts {} {
          Enable this option if you know the server supports VeNCrypt.
          Also use this option for the older ANONTLS extension (vino).
          Doing so will give the quickest and most reliable connection
-         to VeNCrypt/ANONTLS servers.
+         to VeNCrypt/ANONTLS servers.  If set, any probing to try to
+         auto-detect VeNCrypt/ANONTLS will be skipped.
 
          Some VNC servers supporting VeNCrypt: VeNCrypt, QEMU, ggi,
          virt-manager, and Xen.  Vino supports ANONTLS.
 
-         Note: ONLY when 'Verify All Certs' is selected and you
-         have NOT set a ServerCert will SSVNC attempt to auto-detect
-         VeNCrypt/ANONTLS and automatically switch to it (SSVNC does this
-         during the initial cert fetch.)
-
-         So if you use a fixed ServerCert or no server authentication you
-         *MUST* select this 'Server uses VeNCrypt SSL encryption' option
-         to be able to connect.  This deficiency is due to SSVNC being a
-         "glue program"...
-         
          The SSVNC VeNCrypt/ANONTLS support even works with 3rd party
          VNC Viewers you specify via 'Change VNC Viewer' (e.g. RealVNC,
          TightVNC, UltraVNC etc.) that do not directly support it.
-         This advantage is due to SSVNC being a "glue program"...
 
          Note: many VeNCrypt servers only support Anonymous Diffie Hellman
-         TLS which has NO built in authentication (see the next section.)
+         TLS which has NO built in authentication and you will also need
+         to set the option described in the next section.
 
          If you are using VeNCrypt or ANONTLS for REVERSE connections
          (Listen) then you *MUST* set this 'Server uses VeNCrypt SSL
@@ -12519,24 +13382,24 @@ proc help_advanced_opts {} {
          Anonymous Diffie-Hellman can be used for SSL/TLS connections but
          there are no Certificates for authentication.  Therefore only
          passive eavesdropping attacks are prevented, not Man-In-The-Middle
-         attacks.  Not recommended; use verified X509 certs instead.
+         attacks.  Not recommended; try to use verified X509 certs instead.
 
          Enable this option if you know the server only supports Anon DH.
          When you do so, remember that ALL Certificate checking will be
-         skipped (even if you have 'Verify All Certs' selected.)
+         skipped (even if you have 'Verify All Certs' selected or set
+         a ServerCert.)
 
-         When 'Verify All Certs' is selected and you have not specified a
-         fixed ServerCert, SSVNC may be able to autodetect Anon DH even if
-         you haven't selected 'Server uses Anonymous Diffie-Hellman'. Once
-         detected, it will prompt you whether it should continue.  Set the
-         'Server uses Anonymous Diffie-Hellman' option to avoid trying
-         autodetection (i.e. forcing the issue.)
+         SSVNC may be able to autodetect Anon DH even if you haven't
+         selected 'Server uses Anonymous Diffie-Hellman'. Once detected, it
+         will prompt you whether it should continue.  Set the 'Server uses
+         Anonymous Diffie-Hellman' option to avoid trying autodetection
+         (i.e. forcing the issue.)
 
          Note that most Anonymous Diffie-Hellman VNC Servers do so
          via the VeNCrypt or ANONTLS VNC extensions (see the previous
          section.)  For these servers if you select 'Server uses Anonymous
          Diffie-Hellman' you *MUST* ALSO select 'Server uses VeNCrypt SSL
-         encryption', otherwise SSVNC will have no chance to auto-detect
+         encryption', otherwise SSVNC may have no chance to auto-detect
          the VeNCrypt/ANONTLS protocol.
 
          Also note, if you are using the "Use SSH+SSL" double tunnel to
@@ -12723,7 +13586,7 @@ proc help_ssvncviewer_opts {} {
       TurboVNC:
 
          If available on your platform, use a ssvncviewer compiled with
-         TurboVNC support.  This is based on the the VirtualGL project:
+         TurboVNC support.  This is based on the VirtualGL project:
          http://www.sourceforge.net/projects/virtualgl	You will need
          to install the VirtualGL's TurboJPEG library too.
 
@@ -12852,17 +13715,22 @@ proc help_ssvncviewer_opts {} {
          SSVNC_NOSOLID            (do not do solid region speedup in
                                    scaling mode.)
          SSVNC_PRESERVE_ENCODING  (do not switch to ZRLE when scaling)
+         SSVNC_FINISH_SLEEP       (on unix/macosx sleep this many seconds
+                                   before exiting the terminal, default 5)
 
-         Misc (special usage or debugging):
+         Misc (special usage or debugging or ss_vncviewer settings):
 
-         SSVNC_NO_ULTRA_DSM
-         SSVNC_ULTRA_FTP_JAR
+         SSVNC_MESG_DELAY         (sleep this many millisec between messages)
+         SSVNC_EXTRA_SLEEP        (same as Sleep: window)
+         SSVNC_NO_ULTRA_DSM       (disable ultravnc dsm encryption)
+         SSVNC_ULTRA_FTP_JAR      (file location of ultraftp.jar jar file)
+         SSVNC_KNOWN_HOSTS_FILE   (file for per-connection ssh known hosts)
          SSVNC_SCALE_STATS
          SSVNC_DEBUG_RELEASE
          SSVNC_DEBUG_ESCAPE_KEYS
          SSVNC_NO_MAYBE_SYNC
-         SSVNC_MAX_LISTEN
-         SSVNC_LISTEN_ONCE
+         SSVNC_MAX_LISTEN         (number of time to listen for reverse conn.)
+         SSVNC_LISTEN_ONCE        (listen for reverse conn. only once)
          SSVNC_EXIT_DEBUG
          SSVNC_DEBUG_CHAT
          SSVNC_NO_MESSAGE_POPUP
@@ -12880,7 +13748,6 @@ proc help_ssvncviewer_opts {} {
          SSVNC_STUNNEL_DEBUG
          SSVNC_TEST_SEC_TYPE
          SSVNC_LIM_ACCEPT_PRELOAD
-         SSVNC_EXTRA_SLEEP
          SSVNC_SOCKS5
 }
 
@@ -12893,7 +13760,11 @@ proc help_ssvncviewer_opts {} {
 proc show_viewer_help {} {
 	toplev .vhlp
 
-	scroll_text_dismiss .vhlp.f 83 35
+	set h 35
+	if [small_height] {
+		set h 30
+	}
+	scroll_text_dismiss .vhlp.f 83 $h
 
 	center_win .vhlp
 	wm resizable .vhlp 1 0
@@ -12924,9 +13795,9 @@ proc change_vncviewer_dialog {} {
 
 	global help_font
 	if {$ts_only} {
-		eval text .chviewer.t -width 90 -height 18 $help_font
+		eval text .chviewer.t -width 90 -height 16 $help_font
 	} else {
-		eval text .chviewer.t -width 90 -height 29 $help_font
+		eval text .chviewer.t -width 90 -height 27 $help_font
 	}
 	apply_bg .chviewer.t
 
@@ -12940,8 +13811,7 @@ proc change_vncviewer_dialog {} {
     You can specify your own command line options below if you like (and try to
     avoid setting any others in this GUI under "Options").
 
-    If the path to the program name has any spaces it in, please surround it with
-    double quotes, e.g.
+    If the path to the program name has spaces it in, surround it with double quotes:
 
         "C:\Program Files\My Vnc Viewer\VNCVIEWER.EXE"
 
@@ -12953,11 +13823,10 @@ proc change_vncviewer_dialog {} {
     Since the command line options differ between them greatly, if you know it
     is of the RealVNC 4.x flavor, indicate on the check box. Otherwise we guess.
 
-    To have SSVNC act as a general STUNNEL redirector (no VNC) set the viewer to
-    be "xmessage OK" or "xmessage <port>" or "sleep n" or "sleep n <port>" (or
-    "NOTEPAD" on Windows).  The default listen port is 5930.  The destination is
-    set in "VNC Host:Display" (for a remote port less then 200 use the negative
-    of the port value).
+    To have SSVNC act as a general STUNNEL redirector (no VNC) set the viewer to be
+    "xmessage OK" or "xmessage <port>" or "sleep n" or "sleep n <port>" (or "NOTEPAD"
+    on Windows).  The default listen port is 5930.  The destination is set in "VNC
+    Host:Display" (for a remote port less than 200 use the negative of the port value).
 }
 
 	if {$ts_only} {
@@ -12999,11 +13868,11 @@ proc port_redir_dialog {} {
 	wm title .redirs "Additional Port Redirections (via SSH)"
 
 	global help_font uname
-	if {$uname == "Darwin"} {
-		eval text .redirs.t -width 80 -height 35 $help_font
-	} else {
-		eval text .redirs.t -width 80 -height 35 $help_font
+	set h 35
+	if [small_height] {
+		set h 27
 	}
+	eval text .redirs.t -width 80 -height $h $help_font
 	apply_bg .redirs.t
 
 	set msg {
@@ -13070,11 +13939,12 @@ proc stunnel_sec_dialog {} {
 	wm title .stlsec "STUNNEL Local Port Protections"
 
 	global help_font uname
-	if {$uname == "Darwin"} {
-		scroll_text .stlsec.f 82 37
-	} else {
-		scroll_text .stlsec.f 82 37
+	
+	set h 37
+	if [small_height] {
+		set h 26
 	}
+	scroll_text .stlsec.f 82 $h
 
 	apply_bg .stlsec.f
 
@@ -13138,7 +14008,11 @@ proc disable_ssl_workarounds_dialog {} {
 	wm title .sslwrk "Disable SSL Workarounds"
 
 	global help_font uname
-	scroll_text .sslwrk.f 86 36
+	set h 36
+	if [small_height] {
+		set h 24
+	}
+	scroll_text .sslwrk.f 86 $h
 
 	apply_bg .sslwrk.f
 
@@ -13214,9 +14088,16 @@ proc update_no_ultra_dsm {} {
 			;
 		} elseif {$ultra_dsm_type == "msrc4_sc"} {
 			;
+		} elseif {$ultra_dsm_type == "securevnc"} {
+			;
 		} else {
 			set ultra_dsm_type guess
 		}
+		catch {.ultradsm.key.securevnc configure -state normal}
+		catch {.ultradsm.key.msrc4_sc  configure -state normal}
+	} else {
+		catch {.ultradsm.key.securevnc configure -state disabled}
+		catch {.ultradsm.key.msrc4_sc  configure -state disabled}
 	}
 }
 
@@ -13227,32 +14108,39 @@ proc ultra_dsm_dialog {} {
 	wm title .ultradsm "UltraVNC DSM Encryption Plugin"
 
 	global help_font
-	scroll_text .ultradsm.f 85 35
+	set h 40
+	if [small_height] {
+		set h 22
+	}
+	scroll_text .ultradsm.f 85 $h
 
 	set msg {
-    On Unix with the provided SSVNC vncviewer, you can connect to an UltraVNC
-    server that is using one of its DSM encryption plugins: MSRC4, ARC4, AESV2.
-    More info at: http://www.uvnc.com/features/encryption.html
+    On Unix and MacOSX with the provided SSVNC vncviewer, you can connect to an
+    UltraVNC server that is using one of its DSM encryption plugins: MSRC4, ARC4,
+    AESV2, and SecureVNC. More info at: http://www.uvnc.com/features/encryption.html
 
-    IMPORTANT: The UltraVNC DSM implementation contains unfixed errors
-    that could allow an eavesdropper to recover the session key or traffic
-    relatively easily.  They often do not provide strong encryption, but
+    IMPORTANT: The UltraVNC DSM MSRC4, ARC4, and AESV2 implementations contain
+    unfixed errors that could allow an eavesdropper to recover the session
+    key or traffic easily.  They often do not provide strong encryption, but
     only provide basic obscurity instead.  Do not use them with critical data.
+    The newer SecureVNC Plugin does not suffer from these problems.
 
     See the bottom of this help text for how to use symmetric encryption with
-    Non-UltraVNC servers (for example, x11vnc 0.9.5 or later).  This mode does
-    not suffer the shortcomings of the UltraVNC DSM implementation.
+    Non-UltraVNC servers (for example, x11vnc 0.9.5 or later).  This mode does not
+    suffer the shortcomings of the UltraVNC MSRC4, ARC4, and AESV2 implementations.
 
     You will need to specify the corresponding UltraVNC encryption key (created
     by you using an UltraVNC server or viewer).  It is usually called 'rc4.key'
-    (for MSRC4), 'arc4.key' (for ARC4), and 'aesv2.key' (for AESV2).  Specify
-    the path to it or Browse for it.  Also, specify which type of plugin it is
-    (or use 'guess' to have it guess via the before mentioned filenames).
+    (for MSRC4), 'arc4.key' (for ARC4), and 'aesv2.key' (for AESV2).  Specify the
+    path to it or Browse for it.  Also, specify which type of plugin it is (or use
+    'guess' to have it guess via the before mentioned filenames).
 
-    The choice "UVNC SC" enables a special workaround for use with UltraVNC
-    Single Click and the MSRC4 plugin.  It may not be needed on recent SC.
+    The choice "UVNC SC" enables a special workaround for use with UltraVNC Single
+    Click and the MSRC4 plugin.  It may not be needed on recent SC (e.g. from
+    ~2009 and later; select "MSRC4" for these newer ones.)
 
-    You can also specify pw=my-password instead of a keyfile.
+    You can also specify pw=my-password instead of a keyfile.  Use single quotes
+    pw='....' if the password contains shell meta-characters `!$&*(){}[]|;<>?
 
     Use the literal string 'pw=VNCPASSWD' to have the VNC password that you
     entered into the 'VNC Password:' be used for the pw=...
@@ -13261,26 +14149,61 @@ proc ultra_dsm_dialog {} {
 
     Proxying works in this mode, as well as Reverse Connections (Listen)
 
-    This encryption mode is currently experimental because unfortunately
-    the UltraVNC DSM plugin also modifies the RFB protocol, and so the SSVNC
-    vncviewer had to be modified to support it.  The tight and zlib encodings
-    currently do not work in this mode and are disabled.
+    The choice "SecureVNC" refers to the SecureVNC Plugin using 128 bit AES or
+    ARC4 with 2048 bit RSA key exchange described here:
+
+          http://adamwalling.com/SecureVNC
+
+    Note in its default mode SecureVNC is *Vulnerable* to Man-In-The-Middle attacks
+    (encryption but no server authentication) so do not use it with critical data.
+    In SecureVNC mode you do not need to supply a 'Ultra DSM Keyfile'.  However,
+    if you DO supply a keyfile filename (recommended) if that file does not exist
+    you will be prompted if you want to save the UltraVNC server's RSA key in it.
+    The key's MD5 checksum is displayed so that you can verify that the key is
+    trusted.  One way to print out the SecureVNC public key MD5 checksum is:
+
+    openssl rsa -inform DER -outform DER -pubout -in ./Server_SecureVNC.pkey | dd bs=1 skip=24 | md5sum
+
+    Then on subsequent connections, if you continue to specify this filename, the
+    SecureVNCPlugin server's RSA key will be checked against the file's contents
+    and if they differ the connection will be dropped.
+
+    NOTE, However, if the SecureVNC keyfile ends in the string 'ClientAuth.pkey'
+    then its contents are used for SecureVNC's normal Client Authentication dialog
+    (you need to use Windows SecureVNCPlugin to generate this file on the server
+    side, it is usually called "Viewer_ClientAuth.pkey", and then safely copy it
+    to the viewer side.)  If you want to do BOTH Client Auth and server RSA key
+    storing (recommended), have the keyfile end in 'ClientAuth.pkey.rsa'; that way
+    the file will be used for storing the server RSA key and then the '.rsa' is
+    trimmed off and the remainder used for the SecureVNC Client Auth data filename.
+
+    Note that despite its intentions, Client Authentication in the FIRST release of
+    SecureVNC is still susceptible to Man-In-The-Middle attacks.  Even when that
+    is fixed, SecureVNC Client Authentication is still susceptible to "spoofing"
+    attacks where the viewer user may be tricked into revealing his VNC or MS-Logon
+    password if his connection is intercepted.  It is recommended you verify and
+    save the Server key (see above) in addition to using Client Authentication.
+
+    UltraVNC DSM encryption modes are currently experimental because unfortunately
+    the UltraVNC DSM plugin also modifies the RFB protocol(!), and so the SSVNC
+    vncviewer had to be modified to support it.  The tight, zlib, and some minor
+    encodings currently do not work in this mode and are disabled.
 
     Note that this mode also requires the utility tool named 'ultravnc_dsm_helper'
     that should be included in your SSVNC kit.
 
-    Select 'Non-Ultra DSM' to use symmetric encryption to a Non-UltraVNC server
-    via a supported symmetric key cipher.  x11vnc supports symmetric encryption
-    via, e.g., "x11vnc -enc aesv2:./my.key".  Extra ciphers are enabled for
-    this mode (e.g. blowfish and 3des).
+    Select 'Non-Ultra DSM' to use symmetric encryption to a Non-UltraVNC server via
+    a supported symmetric key cipher.  x11vnc supports symmetric encryption via,
+    e.g., "x11vnc -enc aesv2:./my.key".  Extra ciphers are enabled for this mode
+    (e.g. blowfish and 3des).  'UVNC SC' and SecureVNC do not apply in this mode.
 
     Note for the Non-Ultra DSM case it will also work with any VNC Viewer
     (i.e. selected by Options -> Advanced -> Change VNC Viewer) not only the
     supplied SSVNC vncviewer.
 
-    You can also set the random salt size and initialization vector size in
-    Salt,IV for example "8,16".  See the x11vnc and 'ultravnc_dsm_helper -help'
-    documentation for more info on this.
+    For experts: You can also set the random salt size and initialization vector
+    size in Salt,IV for example "8,16".  See the x11vnc and 'ultravnc_dsm_helper
+    -help' documentation for more info on this.
 }
 
 	.ultradsm.f.t insert end $msg
@@ -13310,12 +14233,16 @@ proc ultra_dsm_dialog {} {
 	radiobutton .ultradsm.key.msrc4_sc -pady 1 -anchor w -variable ultra_dsm_type -value msrc4_sc \
 		-text "UVNC SC"
 
+	radiobutton .ultradsm.key.securevnc -pady 1 -anchor w -variable ultra_dsm_type -value securevnc \
+		-text "SecureVNC"
+
 	pack .ultradsm.key.l -side left
 	pack .ultradsm.key.guess -side left
 	pack .ultradsm.key.arc4 -side left
 	pack .ultradsm.key.aesv2 -side left
 	pack .ultradsm.key.msrc4 -side left
 	pack .ultradsm.key.msrc4_sc -side left
+	pack .ultradsm.key.securevnc -side left
 
 	frame .ultradsm.nou
 	checkbutton .ultradsm.nou.cb -text "Non-Ultra DSM" -variable ultra_dsm_noultra -command update_no_ultra_dsm
@@ -13356,6 +14283,76 @@ proc ultra_dsm_dialog {} {
 	wm resizable .ultradsm 1 0
 
 	focus .ultradsm.path.e 
+}
+
+proc ssh_known_hosts_dialog {} {
+	global ssh_known_hosts ssh_known_hosts_filename
+	
+	toplev .sshknownhosts
+	wm title .sshknownhosts "Private SSH KnownHosts file"
+
+	global help_font
+	set h 31
+	if [small_height] {
+		set h 23
+	}
+	scroll_text .sshknownhosts.f 80 $h
+
+	set msg {
+      Private SSH KnownHosts file:
+
+         On Unix in SSH mode, let the user specify a non-default
+         ssh known_hosts file to be used only by the current profile.
+         This is the UserKnownHostsFile ssh option and is described in the
+         ssh_config(1) man page.  This is useful to avoid proxy 'localhost'
+         SSH key collisions.
+
+         Normally one should simply let ssh use its default file
+         ~/.ssh/known_hosts for tracking SSH keys.  The only problem with
+         that happens when multiple SSVNC connections use localhost tunnel
+         port redirections.  These make ssh connect to 'localhost' on some
+         port (where the proxy is listening.)  Then the different keys
+         from the multiple ssh servers collide when ssh saves them under
+         'localhost' in ~/.ssh/known_hosts.
+
+         So if you are using a proxy with SSVNC or doing a "double SSH
+         gateway" your ssh will connect to a proxy port on localhost, and you
+         should set a private KnownHosts file for that connection profile.
+         This is secure and avoids man-in-the-middle attack (as long as
+         you actually verify the initial save of the SSH key!)
+
+         The default file location will be:
+
+                  ~/.vnc/ssh_known_hosts/profile-name.known
+
+         but you can choose any place you like.  It must of course be
+         unique and not shared with another ssh connection otherwise they
+         both may complain about the key for 'localhost' changing, etc.
+}
+
+	.sshknownhosts.f.t insert end $msg
+
+	frame .sshknownhosts.path
+	label .sshknownhosts.path.l -text "SSH KnownHosts file:"
+	entry .sshknownhosts.path.e -width 40 -textvariable ssh_known_hosts_filename
+	button .sshknownhosts.path.b -text "Browse..." -command {set_ssh_known_hosts_file .sshknownhosts}
+
+	pack .sshknownhosts.path.l -side left
+	pack .sshknownhosts.path.e -side left -expand 1 -fill x
+	pack .sshknownhosts.path.b -side left
+
+	button .sshknownhosts.cancel -text "Cancel" -command {destroy .sshknownhosts; set ssh_known_hosts 0}
+	bind .sshknownhosts <Escape> {destroy .sshknownhosts; set ssh_known_hosts 0}
+	wm protocol .sshknownhosts WM_DELETE_WINDOW {destroy .sshknownhosts; set ssh_known_hosts 0}
+	button .sshknownhosts.done -text "Done" -command {destroy .sshknownhosts; catch {raise .oa}}
+	bind .sshknownhosts.path.e <Return> {destroy .sshknownhosts; catch {raise .oa}}
+
+	pack .sshknownhosts.f .sshknownhosts.path .sshknownhosts.cancel .sshknownhosts.done -side top -fill x
+
+	center_win .sshknownhosts
+	wm resizable .sshknownhosts 1 0
+
+	focus .sshknownhosts.path.e 
 }
 
 proc ssh_sec_dialog {} {
@@ -13417,7 +14414,11 @@ proc multilisten_dialog {} {
 	wm title .multil "Multiple LISTEN Connections"
 
 	global help_font
-	eval text .multil.t -width 84 -height 35 $help_font
+	set h 35
+	if [small_height] {
+		set h 30
+	}
+	eval text .multil.t -width 84 -height $h $help_font
 
 	apply_bg .multil.t
 
@@ -13904,11 +14905,14 @@ proc port_knocking_dialog {} {
 	global help_font
 
 	global uname
-	if {$uname == "Darwin"} {
-		scroll_text .pk.f 85 25
-	} else {
-		scroll_text .pk.f 85
+
+	set h 35
+	if [small_height] {
+		set h 22
+	} elseif {$uname == "Darwin"} {
+		set h 25
 	}
+	scroll_text .pk.f 85 $h
 
 	set msg {
  Description:
@@ -14409,6 +15413,12 @@ proc set_ts_adv_options {} {
 	if {$is_windows} {.ot2.b$i configure -state disabled}
 	incr i
 
+	checkbutton .ot2.b$i -anchor w -variable ssh_known_hosts -text \
+		"SSH KnownHosts file" \
+		-command {if {$ssh_known_hosts} {ssh_known_hosts_dialog}}
+	if {$is_windows} {.ot2.b$i configure -state disabled}
+	incr i
+
 	global env
 	if {![info exists env(SSVNC_TS_ALWAYS)]} {
 		button .ot2.b$i -anchor w -text "   SSVNC Mode" \
@@ -14448,18 +15458,18 @@ proc set_ts_adv_options {} {
 }
 
 proc change_vncviewer_dialog_wrap {} {
-	global change_vncviewer ts_uss_button
+	global change_vncviewer ts_uss_button is_windows
 	if {$change_vncviewer} {
 		change_vncviewer_dialog
 		catch {tkwait window .chviewer}
 	}
-	if {$change_vncviewer} {
+	if {$change_vncviewer || $is_windows} {
 		catch {.oa.ss configure -state disabled}
 	} else {
 		catch {.oa.ss configure -state normal}
 	}
 	if [info exists ts_uss_button] {
-		if {$change_vncviewer} {
+		if {$change_vncviewer || $is_windows} {
 			catch {$ts_uss_button configure -state disabled}
 		} else {
 			catch {$ts_uss_button configure -state normal}
@@ -14520,6 +15530,14 @@ proc set_advanced_options {} {
 
 	global use_ssl use_ssh use_sshssl
 
+	checkbutton .oa.b$i -anchor w -variable ssh_known_hosts -text \
+		"Private SSH KnownHosts file" \
+		-command {if {$ssh_known_hosts} {ssh_known_hosts_dialog}}
+	set adv_ssh(knownhosts) .oa.b$i
+	if {$use_ssl}    {.oa.b$i configure -state disabled}
+	if {$is_windows} {.oa.b$i configure -state disabled}
+	incr i
+
 	checkbutton .oa.b$i -anchor w -variable ssh_local_protection -text \
 		"SSH Local Port Protections" \
 		-command {if {$ssh_local_protection} {ssh_sec_dialog}}
@@ -14557,16 +15575,22 @@ proc set_advanced_options {} {
 	if {$use_ssh}    {.oa.b$i configure -state disabled}
 	incr i
 
+	checkbutton .oa.b$i -anchor w -variable no_probe_vencrypt -text \
+		"Do not Probe for VeNCrypt"
+	global no_probe_vencrypt_button
+	set no_probe_vencrypt_button .oa.b$i
+	if {$use_ssh}    {.oa.b$i configure -state disabled}
+	incr i
+
 	checkbutton .oa.b$i -anchor w -variable server_vencrypt -text \
 		"Server uses VeNCrypt SSL encryption"
 	global vencrypt_button
 	set vencrypt_button .oa.b$i
-	#if {$is_windows} {.oa.b$i configure -state disabled}
 	if {$use_ssh}    {.oa.b$i configure -state disabled}
 	incr i
 
 	checkbutton .oa.b$i -anchor w -variable server_anondh -text \
-		"Server uses Anonymous Diffie-Hellman"
+		"Server uses Anonymous Diffie-Hellman" -command no_certs_tutorial_mesg
 	global anondh_button
 	set anondh_button .oa.b$i
 	if {$use_ssh}    {.oa.b$i configure -state disabled}
@@ -14583,33 +15607,32 @@ proc set_advanced_options {} {
 		-command {if {$use_port_knocking} {port_knocking_dialog}}
 	incr i
 
-	global include_list
-	frame .oa.b$i
-	label .oa.b$i.l -text "Include:"
-	entry .oa.b$i.e -width 10 -textvariable include_list
-	pack .oa.b$i.l -side left
-	pack .oa.b$i.e -side right -expand 1 -fill x
-
-	incr i
-
-	global extra_sleep
-	frame .oa.b$i
-	label .oa.b$i.l -text "Sleep:  "
-	entry .oa.b$i.e -width 10 -textvariable extra_sleep
-	pack .oa.b$i.l -side left
-	pack .oa.b$i.e -side right -expand 1 -fill x
-
-	incr i
-
 	for {set j 1} {$j < $i} {incr j} {
 		pack .oa.b$j -side top -fill x
 	}
+
+	global include_list extra_sleep
+	frame .oa.fis
+	frame .oa.fis.fL
+	frame .oa.fis.fR
+	label .oa.fis.fL.la -anchor w -text "Include:"
+	label .oa.fis.fL.lb -anchor w -text "Sleep:"
+	pack .oa.fis.fL.la .oa.fis.fL.lb -side top -fill x
+
+	entry .oa.fis.fR.ea -width 10 -textvariable include_list
+	entry .oa.fis.fR.eb -width 10 -textvariable extra_sleep
+	pack .oa.fis.fR.ea .oa.fis.fR.eb -side top -fill x
+
+	pack .oa.fis.fL -side left
+	pack .oa.fis.fR -side right -expand 1 -fill x
+
+	pack .oa.fis -side top -fill x
 
 	global uname
 	set t1 "         Unix ssvncviewer ..."
 	if {$uname == "Darwin" } { regsub {^ *} $t1 "" t1 }
 	button .oa.ss -anchor w -text $t1 -command set_ssvncviewer_options
-	pack .oa.ss -side top -fill x
+	pack   .oa.ss -side top -fill x
 	if {$is_windows} {
 		.oa.ss configure -state disabled
 	}
@@ -14897,7 +15920,7 @@ proc set_ssvncviewer_options {} {
 	frame $fr.b$j -relief $relief -borderwidth 2
 
 	label $fr.b$j.l1 -font $ffont -anchor w -text "Add any extra options for ssvncviewer that you want.";
-	label $fr.b$j.l2 -font $ffont -anchor w -text "For example: -16bpp -noshm etc.  See Help for a list.";
+	label $fr.b$j.l2 -font $ffont -anchor w -text "For example: -16bpp -appshare -noshm etc. See Help for a list.";
 
 	global ssvnc_extra_opts
 	frame $fr.b$j.f
@@ -15064,7 +16087,7 @@ proc putty_pw_entry {mode} {
 }
 proc adv_ssh_tog {on} {
 	global adv_ssh
-	foreach b {cups snd smb redirs} {
+	foreach b {cups snd smb redirs knownhosts} {
 		if [info exists adv_ssh($b)] {
 			if {$on} {
 				catch {$adv_ssh($b) configure -state normal}
@@ -15078,7 +16101,7 @@ proc adv_ssh_tog {on} {
 proc adv_listen_ssl_tog {on} {
 	global stunnel_local_protection_button is_windows
 	global disable_ssl_workarounds_button
-	global vencrypt_button anondh_button ultra_dsm_button
+	global vencrypt_button no_probe_vencrypt_button anondh_button ultra_dsm_button
 
 	set blist [list] 
 	if [info exists stunnel_local_protection_button] {
@@ -15089,6 +16112,9 @@ proc adv_listen_ssl_tog {on} {
 	}
 	if [info exists ultra_dsm_button] {
 		lappend blist $ultra_dsm_button
+	}
+	if [info exists no_probe_vencrypt_button] {
+		lappend blist $no_probe_vencrypt_button
 	}
 	if [info exists vencrypt_button] {
 		lappend blist $vencrypt_button
@@ -15107,7 +16133,6 @@ proc adv_listen_ssl_tog {on} {
 	if {$is_windows} {
 		catch {$stunnel_local_protection_button configure -state disabled}
 		catch {$ultra_dsm_button                configure -state disabled}
-		catch {$vencrypt_button                 configure -state disabled}
 	}
 }
 
@@ -15402,7 +16427,7 @@ proc set_options {} {
 	}
 
 	checkbutton .o.b$i -anchor w -variable use_listen -text \
-		"Reverse VNC Connection (-LISTEN)" -command {listen_adjust; if {$vncdisplay == ""} {set vncdisplay ":0"} else {set vncdisplay ""}; if {$use_listen} {destroy .o}}
+		"Reverse VNC Connection (-LISTEN)" -command {listen_adjust; if {$vncdisplay == ""} {set vncdisplay ":0"} else {set vncdisplay ""}; if {0 && $use_listen} {destroy .o}}
 	#if {$is_windows} {.o.b$i configure -state disabled}
 	#if {$darwin_cotvnc} {.o.b$i configure -state disabled}
 	#set darwin_cotvnc_blist(.o.b$i) 1
@@ -15512,14 +16537,15 @@ proc set_options {} {
 
 	global started_with_noenc
 
-	if {$started_with_noenc && $showing_no_encryption} {
+	if {0 && $started_with_noenc && $showing_no_encryption} {
 		;
 	} elseif {$ssh_only} {
 		;
 	} else {
 		checkbutton .o.b$i -anchor w -variable showing_no_encryption -text \
-			"Show 'No Encryption' Option" -relief raised -pady 5 \
+			"Show 'No Encryption' Option" -pady 5 \
 			-command {toggle_no_encryption 1}
+		# -relief raised
 		incr i
 	}
 
@@ -15539,17 +16565,26 @@ proc set_options {} {
 	}
 
 	if {$is_windows} {
-		frame .o.pw	
-		label .o.pw.l -text "Putty PW:"
-		entry .o.pw.e -width 10 -show * -textvariable putty_pw
-		pack .o.pw.l -side left
-		pack .o.pw.e -side left -expand 1 -fill x
-		pack .o.pw -side top -fill x 
-		putty_pw_entry check
-	}
+		global port_slot putty_pw
 
-#	button .o.s_prof -text "Save Profile ..." -command {save_profile .o; raise .o}
-#	button .o.l_prof -text " Load Profile ..." -command {load_profile .o; raise .o}
+		frame .o.pp	
+		frame .o.pp.fL	
+		frame .o.pp.fR	
+		label .o.pp.fL.la -anchor w -text "Putty PW:"
+		label .o.pp.fL.lb -anchor w -text "Port Slot:"
+		pack .o.pp.fL.la .o.pp.fL.lb -side top -fill x
+		
+		entry .o.pp.fR.ea -width 10 -show * -textvariable putty_pw
+		entry .o.pp.fR.eb -width 10 -textvariable port_slot
+		pack .o.pp.fR.ea .o.pp.fR.eb  -side top -fill x
+
+		pack .o.pp.fL -side left
+		pack .o.pp.fR -side right -expand 1 -fill x
+
+		pack .o.pp -side top -fill x
+
+		putty_pw_entry check
+	} 
 
 	global uname
 	set t1 "             Advanced ..."
@@ -15791,6 +16826,11 @@ proc print_help {} {
 	puts "${b}UltraVNC DSM Encryption Plugin Dialog:\n$str"
 	destroy .ultradsm
 
+	ssh_known_hosts_dialog
+	set str [.sshknownhosts.f.t get 1.0 end]
+	puts "${b}Private SSH KnownHosts file Dialog:\n$str"
+	destroy .sshknownhosts
+
 	ssh_sec_dialog
 	set str [.sshsec.t get 1.0 end]
 	puts "${b}SSH Local Port Protections Dialog:\n$str"
@@ -15805,7 +16845,6 @@ proc print_help {} {
 	set str [.usegrb.t get 1.0 end]
 	puts "${b}Use XGrabServer (for fullscreen) Dialog:\n$str"
 	destroy .usegrb
-
 }
 
 proc zeroconf_fill {b m} {
@@ -16156,6 +17195,8 @@ if {$tcl_platform(platform) == "unix"} {
 			}
 		}
 	}
+	catch {option add *Dialog.msg.font {helvetica -14 bold}}
+	catch {option add *Dialog.msg.wrapLength 4i}
 }
 
 if {$uname == "Darwin"} {
@@ -16265,7 +17306,20 @@ global kill_stunnel
 set kill_stunnel 1
 
 global started_with_noenc
-set started_with_noenc 0
+
+if {! [info exists env(SSVNC_DISABLE_ENCRYPTION_BUTTON)]} {
+	set env(SSVNC_DISABLE_ENCRYPTION_BUTTON) 1
+	set started_with_noenc 1
+} else {
+	if {$env(SSVNC_DISABLE_ENCRYPTION_BUTTON) == "0"} {
+		set started_with_noenc 0
+	} elseif {$env(SSVNC_DISABLE_ENCRYPTION_BUTTON) == "1"} {
+		set started_with_noenc 1
+	} else {
+		set env(SSVNC_DISABLE_ENCRYPTION_BUTTON) 1
+		set started_with_noenc 1
+	}
+}
 
 if [file exists $ssvncrc] {
 	set fh ""
@@ -16305,6 +17359,7 @@ if [file exists $ssvncrc] {
 			if [regexp {^font_default=(.*)$} $str m val] {
 				set val [string trim $val]
 				catch {option add *font $val}
+				catch {option add *Dialog.msg.font $val}
 			}
 			if [regexp {^font_fixed=(.*)$} $str m val] {
 				set val [string trim $val]
@@ -16314,6 +17369,11 @@ if [file exists $ssvncrc] {
 				global env
 				set env(SSVNC_DISABLE_ENCRYPTION_BUTTON) 1
 				set started_with_noenc 1
+			}
+			if [regexp {^noenc=0} $str] {
+				global env
+				set env(SSVNC_DISABLE_ENCRYPTION_BUTTON) 0
+				set started_with_noenc 0
 			}
 			if [regexp {^cotvnc=1} $str] {
 				global env
@@ -16348,6 +17408,10 @@ if [file exists $ssvncrc] {
 			if [regexp {^crl=(.*)$} $str m val] {
 				set val [string trim $val]
 				set crlfil_default $val
+			}
+			if [regexp {^env=([^=]*)=(.*)$} $str m var val] {
+				global env
+				set env($var) $val
 			}
 		}
 		close $fh
@@ -16448,6 +17512,7 @@ if [info exists env(SSVNC_FONT_FIXED)] {
 
 if [info exists env(SSVNC_FONT_DEFAULT)] {
 	catch {option add *font $env(SSVNC_FONT_DEFAULT)}
+	catch {option add *Dialog.msg.font $env(SSVNC_FONT_DEFAULT)}
 }
 
 if [regexp {[ 	]} $ffont] {
@@ -16657,7 +17722,7 @@ radiobutton .f4.sshssl -anchor w -variable sshssl_sw -value sshssl -command {ssl
 pack .f4.ssl .f4.ssh .f4.sshssl -side left -fill x
 
 set showing_no_encryption 0
-radiobutton .f4.none   -anchor w -variable sshssl_sw -value none   -command {ssl_ssh_adjust none}   -text "None "
+radiobutton .f4.none   -anchor w -variable sshssl_sw -value none   -command {ssl_ssh_adjust none}   -text "None   "
 if [disable_encryption] {
 	pack .f4.none -side left
 	set showing_no_encryption 1
@@ -16676,8 +17741,12 @@ if {[info exists env(SSVNC_NO_VERIFY_ALL)]} {
 	set always_verify_ssl 0;
 }
 
-button .f4.getcert -command {fetch_cert 1} -text "Fetch Cert"
-checkbutton .f4.always -variable always_verify_ssl -text "Verify All Certs"
+if {$uname == "Darwin"} {
+	button .f4.getcert -command {fetch_cert 1} -text "Fetch Cert"
+} else {
+	button .f4.getcert -command {fetch_cert 1} -text "Fetch Cert" -padx 3
+}
+checkbutton .f4.always -variable always_verify_ssl -text "Verify All Certs" -command no_certs_tutorial_mesg
 pack .f4.getcert -side right -fill x
 if {[info exists env(SSVNC_NO_VERIFY_ALL_BUTTON)]} {
 	set always_verify_ssl 0;

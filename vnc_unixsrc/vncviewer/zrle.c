@@ -529,6 +529,7 @@ if (0) fprintf(stderr, "cha5: %dx%d+%d+%d\n", w, h, x, y);
 		// make this CopyDataFromScreen() or something.
 		if (!appData.useBGR565) {
 			scrWidthInBytes = si.framebufferWidth * myFormat.bitsPerPixel / 8;
+			if (scrWidthInBytes != im->bytes_per_line) scrWidthInBytes = im->bytes_per_line;
 			scr = im->data + y * scrWidthInBytes + x * myFormat.bitsPerPixel / 8;
 			buf = (char *) ptmp;
 
@@ -539,6 +540,7 @@ if (0) fprintf(stderr, "cha5: %dx%d+%d+%d\n", w, h, x, y);
 			}
 		} else {
 			scrWidthInBytes = si.framebufferWidth * 4;
+			if (scrWidthInBytes != im->bytes_per_line) scrWidthInBytes = im->bytes_per_line;
 			scr = im->data + y * scrWidthInBytes + x * 4;
 			buf = (char *) ptmp;
 

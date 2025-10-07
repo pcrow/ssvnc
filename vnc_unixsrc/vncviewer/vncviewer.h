@@ -168,6 +168,7 @@ typedef struct {
 
 	char *scale;
 	char *escapeKeys;
+	Bool appShare;
 	Bool escapeActive;
 	Bool pipelineUpdates;
 
@@ -227,6 +228,10 @@ extern Cursor dotCursor;
 extern GC gc;
 extern GC srcGC, dstGC;
 extern Dimension dpyWidth, dpyHeight;
+
+extern int appshare_0_hint;
+extern int appshare_x_hint;
+extern int appshare_y_hint;
 
 extern void DesktopInitBeforeRealization();
 extern void DesktopInitAfterRealization();
@@ -404,6 +409,7 @@ extern void SelectionFromVNC(Widget w, XEvent *event, String *params,
 
 extern XImage *CreateShmImage(int do_ycrop);
 extern void ShmCleanup();
+extern void ShmDetach();
 extern Bool UsingShm();
 
 /* sockets.c */

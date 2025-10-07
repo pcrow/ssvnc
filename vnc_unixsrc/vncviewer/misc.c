@@ -115,6 +115,25 @@ ToplevelInitBeforeRealization()
 			toplevelX = (dpyWidth  - toplevelWidth  - appData.wmDecorationWidth) / 2;
 			toplevelY = (dpyHeight - toplevelHeight - appData.wmDecorationHeight) /2;
 
+			if (appData.appShare) {
+				int X = appshare_x_hint;
+				int Y = appshare_y_hint;
+				if (appData.scale) {
+					double fx = 1.0, fy = 1.0;
+					get_scale_values(&fx, &fy);
+					if (fx > 0.0 && fy > 0.0) {
+						X *= fx;
+						Y *= fy;
+					}
+				}
+				if (appshare_x_hint != appshare_0_hint) {
+					toplevelX = X;
+				}
+				if (appshare_y_hint != appshare_0_hint) {
+					toplevelY = Y;
+				}
+			}
+
 			/* set position via "geometry" so that window manager thinks it's a
 			 user-specified position and therefore honours it */
 
@@ -310,6 +329,9 @@ void Cleanup() {
 	}
 #ifdef MITSHM
 	if (appData.useShm) {
+		if (UsingShm()) {
+			ShmDetach();
+		}
 		ShmCleanup();
 	}
 #endif

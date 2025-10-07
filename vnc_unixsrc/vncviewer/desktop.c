@@ -39,6 +39,10 @@ Cursor bogoCursor = None;
 Cursor waitCursor = None;
 Widget form, viewport, desktop;
 
+int appshare_0_hint = -10000;
+int appshare_x_hint = -10000;
+int appshare_y_hint = -10000;
+
 static Bool modifierPressed[256];
 
 XImage *image = NULL;
@@ -246,10 +250,13 @@ void rescale_image(void) {
 	/* now destroy image */
 	if (image && image->data) {
 		if (UsingShm()) {
-			ShmCleanup();
+			ShmDetach();
 		}
 		XDestroyImage(image);
 		fprintf(stderr, "rescale_image: destroyed 'image'\n");
+		if (UsingShm()) {
+			ShmCleanup();
+		}
 		image = NULL;
 	}
 	if (image_ycrop && image_ycrop->data) {
@@ -388,6 +395,7 @@ void try_create_image(void) {
 			fprintf(stderr, "try_create_image: created *non-shm* image: %dx%d\n", image->width, image->height);
 		}
 	}
+	fprintf(stderr, "try_create_image: image->bytes_per_line: %d\n", image->bytes_per_line);
 }
 
 void create_image() {
@@ -499,6 +507,9 @@ int guessCrop(void) {
 }
 
 void check_tall(void) {
+	if (appData.appShare) {
+		return;
+	}
 	if (! appData.yCrop) {
 		int w = si.framebufferWidth;
 		int h = si.framebufferHeight;
@@ -1656,6 +1667,79 @@ HandleBasicDesktopEvent(Widget w, XtPointer ptr, XEvent *ev, Boolean *cont)
 
 extern Position desktopX, desktopY;
 
+void x11vnc_appshare(char *cmd) {
+	char send[200], str[100];
+	char *id = "cmd=id_cmd";
+	int m_big = 80, m_fine = 15;
+	int resize = 100, db = 0;
+
+	if (getenv("X11VNC_APPSHARE_DEBUG")) {
+		db = atoi(getenv("X11VNC_APPSHARE_DEBUG"));
+	}
+
+	if (db) fprintf(stderr, "x11vnc_appshare: cmd=%s\n", cmd);
+
+	str[0] = '\0';
+
+	if (!strcmp(cmd, "left")) {
+		sprintf(str, "%s:move:-%d+0", id, m_big);
+	} else if (!strcmp(cmd, "right")) {
+		sprintf(str, "%s:move:+%d+0", id, m_big);
+	} else if (!strcmp(cmd, "up")) {
+		sprintf(str, "%s:move:+0-%d", id, m_big);
+	} else if (!strcmp(cmd, "down")) {
+		sprintf(str, "%s:move:+0+%d", id, m_big);
+	} else if (!strcmp(cmd, "left-fine")) {
+		sprintf(str, "%s:move:-%d+0", id, m_fine);
+	} else if (!strcmp(cmd, "right-fine")) {
+		sprintf(str, "%s:move:+%d+0", id, m_fine);
+	} else if (!strcmp(cmd, "up-fine")) {
+		sprintf(str, "%s:move:+0-%d", id, m_fine);
+	} else if (!strcmp(cmd, "down-fine")) {
+		sprintf(str, "%s:move:+0+%d", id, m_fine);
+	} else if (!strcmp(cmd, "taller")) {
+		sprintf(str, "%s:resize:+0+%d", id, resize);
+	} else if (!strcmp(cmd, "shorter")) {
+		sprintf(str, "%s:resize:+0-%d", id, resize);
+	} else if (!strcmp(cmd, "wider")) {
+		sprintf(str, "%s:resize:+%d+0", id, resize);
+	} else if (!strcmp(cmd, "narrower")) {
+		sprintf(str, "%s:resize:-%d+0", id, resize);
+	} else if (!strcmp(cmd, "lower")) {
+		sprintf(str, "%s:lower", id);
+	} else if (!strcmp(cmd, "raise")) {
+		sprintf(str, "%s:raise", id);
+	} else if (!strcmp(cmd, "delete")) {
+		sprintf(str, "%s:wm_delete", id);
+	} else if (!strcmp(cmd, "position")) {
+		Position x, y;
+		int xi, yi;
+
+		XtVaGetValues(toplevel, XtNx, &x, XtNy, &y, NULL);
+		xi = (int) x;
+		yi = (int) y;
+		if (appData.scale) {
+			double fx = 1.0, fy = 1.0;
+			get_scale_values(&fx, &fy);
+			if (fx > 0.0 && fy > 0.0) {
+				xi /= fx;
+				yi /= fx;
+			}
+		}
+		sprintf(str, "%s:geom:0x0+%d+%d", id, xi, yi);
+		fprintf(stderr, "str=%s\n", str);
+	}
+	if (strcmp(str, "")) {
+		Bool vo = appData.viewOnly;
+		strcpy(send, "X11VNC_APPSHARE_CMD:");
+		strcat(send, str);
+		if (db) fprintf(stderr, "x11vnc_appshare: send=%s\n", send);
+		if (vo) appData.viewOnly = False;
+		SendClientCutText(send, strlen(send));
+		if (vo) appData.viewOnly = True;
+	}
+}
+
 void scroll_desktop(int horiz, int vert, double amount) {
 	Dimension h, w;
 	Position x, y;
@@ -1842,6 +1926,9 @@ static int escape_sequence_pressed(void) {
 		p = strtok(s, ",+ ");
 		while (p) {
 			ks = XStringToKeysym(p);
+			if (ks == XK_Shift_L || ks == XK_Shift_R) {
+				putenv("NO_X11VNC_APPSHARE=1");
+			}
 			if (k >= 8) {
 				fprintf(stderr, "EscapeKeys: more than 8 modifier keys.\n");
 				failed = 1;
@@ -1935,6 +2022,53 @@ static int escape_sequence_pressed(void) {
 	return pressed;
 }
 
+static int shift_is_down(void) {
+	int shift_down = 0;
+	KeyCode kc;
+
+	if (appData.viewOnly) {
+		int i, k;
+		char keys[32];
+		int keystate[256];
+
+		XQueryKeymap(dpy, keys);
+		for (i=0; i<32; i++) {
+			char c = keys[i];
+
+			for (k=0; k < 8; k++) {
+				if (c & 0x1) {
+					keystate[8*i + k] = 1;
+				} else {
+					keystate[8*i + k] = 0;
+				}
+				c = c >> 1;
+			}
+		}
+
+		kc = XKeysymToKeycode(dpy, XK_Shift_L);
+		if (kc != NoSymbol && keystate[kc]) {
+			shift_down = 1;
+		} else {
+			kc = XKeysymToKeycode(dpy, XK_Shift_R);
+			if (kc != NoSymbol && keystate[kc]) {
+				shift_down = 1;
+			}
+		}
+		return shift_down;
+	} else {
+		kc = XKeysymToKeycode(dpy, XK_Shift_L);
+		if (kc != NoSymbol && modifierPressed[kc]) {
+			shift_down = 1;
+		} else {
+			kc = XKeysymToKeycode(dpy, XK_Shift_R);
+			if (kc != NoSymbol && modifierPressed[kc]) {
+				shift_down = 1;
+			}
+		}
+		return shift_down;
+	}
+}
+			
 /*
  * SendRFBEvent is an action which sends an RFB event.  It can be used in two
  * ways.  Without any parameters it simply sends an RFB event corresponding to
@@ -1963,6 +2097,7 @@ SendRFBEvent(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	int buttonMask, x, y;
 	int do_escape;
 	static int db = -1;
+	char *ek = appData.escapeKeys;
 
 	if (db < 0) {
 		if (getenv("SSVNC_DEBUG_ESCAPE_KEYS")) {
@@ -1999,7 +2134,7 @@ SendRFBEvent(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	}
 
 	do_escape = 0;
-	if (appData.escapeKeys != NULL && !strcasecmp(appData.escapeKeys, "never")) {
+	if (ek != NULL && (ek[0] == 'n' || ek[0] == 'N') && !strcasecmp(ek, "never")) {
 		;
 	} else if (appData.viewOnly) {
 		do_escape = 1;
@@ -2033,10 +2168,18 @@ SendRFBEvent(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	if (!do_escape) {
 		escape_drag_in_progress = 0;
 	}
+	if (db) fprintf(stderr, "do_escape: %d\n", do_escape);
 
 	if (do_escape) {
 		int W = si.framebufferWidth;
 		int H = si.framebufferHeight;
+		int shift_down = 0;
+
+		if (!getenv("NO_X11VNC_APPSHARE")) {
+			shift_down = shift_is_down();
+		}
+		if (db) fprintf(stderr, "shift_down: %d\n", shift_down);
+
 		if (*num_params != 0) {
 			if (strcasecmp(params[0],"fbupdate") == 0) {
 				SendFramebufferUpdateRequest(0, 0, W, H, False);
@@ -2046,7 +2189,11 @@ SendRFBEvent(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 			XButtonEvent *b = (XButtonEvent *) ev;
 			if (db) fprintf(stderr, "ButtonRelease: %d %d %d\n", b->x_root, b->y_root, b->state); 
 			if (b->button == 3) {
-				ShowPopup(w, ev, params, num_params);
+				if (shift_down) {
+					x11vnc_appshare("delete");
+				} else {
+					ShowPopup(w, ev, params, num_params);
+				}
 			} else if (escape_drag_in_progress && b->button == 1) {
 				escape_drag_in_progress = 0;
 			}
@@ -2054,9 +2201,13 @@ SendRFBEvent(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 			XButtonEvent *b = (XButtonEvent *) ev;
 			if (db) fprintf(stderr, "ButtonPress:   %d %d %d\n", b->x_root, b->y_root, b->state); 
 			if (b->button == 1) {
-				escape_drag_in_progress = 1;
-				last_x = b->x_root;
-				last_y = b->y_root;
+				if (shift_down) {
+					x11vnc_appshare("position");
+				} else {
+					escape_drag_in_progress = 1;
+					last_x = b->x_root;
+					last_y = b->y_root;
+				}
 			} else {
 				escape_drag_in_progress = 0;
 			}
@@ -2070,6 +2221,7 @@ SendRFBEvent(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 			}
 		} else if (ev->type == KeyRelease) {
 			int did = 1;
+
 			XLookupString(&ev->xkey, keyname, 256, &ks, NULL);
 			if (ks == XK_1 || ks == XK_KP_1) {
 				set_server_scale(1);
@@ -2113,34 +2265,98 @@ SendRFBEvent(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 				SetEscapeKeys(w, ev, params, num_params);
 			} else if (ks == XK_g || ks == XK_G) {
 				ToggleXGrab(w, ev, params, num_params);
+			} else if (ks == XK_D) {
+				if (shift_down || appData.appShare) {
+					x11vnc_appshare("delete");
+				}
+			} else if (ks == XK_M) {
+				if (shift_down || appData.appShare) {
+					x11vnc_appshare("position");
+				}
 			} else if (ks == XK_Left) {
-				scroll_desktop(-1, 0, 0.1);
+				if (shift_down) {
+					x11vnc_appshare("left");
+				} else {
+					scroll_desktop(-1, 0, 0.1);
+				}
 			} else if (ks == XK_Right) {
-				scroll_desktop(+1, 0, 0.1);
+				if (shift_down) {
+					x11vnc_appshare("right");
+				} else {
+					scroll_desktop(+1, 0, 0.1);
+				}
 			} else if (ks == XK_Up) {
-				scroll_desktop(0, +1, 0.1);
+				if (shift_down) {
+					x11vnc_appshare("up");
+				} else {
+					scroll_desktop(0, +1, 0.1);
+				}
 			} else if (ks == XK_Down) {
-				scroll_desktop(0, -1, 0.1);
+				if (shift_down) {
+					x11vnc_appshare("down");
+				} else {
+					scroll_desktop(0, -1, 0.1);
+				}
 			} else if (ks == XK_KP_Left) {
-				scroll_desktop(-1, 0, 0.0);
+				if (shift_down) {
+					x11vnc_appshare("left-fine");
+				} else {
+					scroll_desktop(-1, 0, 0.0);
+				}
 			} else if (ks == XK_KP_Right) {
-				scroll_desktop(+1, 0, 0.0);
+				if (shift_down) {
+					x11vnc_appshare("right-fine");
+				} else {
+					scroll_desktop(+1, 0, 0.0);
+				}
 			} else if (ks == XK_KP_Up) {
-				scroll_desktop(0, +1, 0.0);
+				if (shift_down) {
+					x11vnc_appshare("up-fine");
+				} else {
+					scroll_desktop(0, +1, 0.0);
+				}
 			} else if (ks == XK_KP_Down) {
-				scroll_desktop(0, -1, 0.0);
+				if (shift_down) {
+					x11vnc_appshare("down-fine");
+				} else {
+					scroll_desktop(0, -1, 0.0);
+				}
 			} else if (ks == XK_Next || ks == XK_KP_Next) {
-				scroll_desktop(0, -1, 1.0);
+				if (shift_down && ks == XK_Next) {
+					x11vnc_appshare("shorter");
+				} else {
+					scroll_desktop(0, -1, 1.0);
+				}
 			} else if (ks == XK_Prior || ks == XK_KP_Prior) {
-				scroll_desktop(0, +1, 1.0);
+				if (shift_down && ks == XK_Prior) {
+					x11vnc_appshare("taller");
+				} else {
+					scroll_desktop(0, +1, 1.0);
+				}
 			} else if (ks == XK_End || ks == XK_KP_End) {
-				scroll_desktop(+1, 0, 1.0);
+				if (shift_down && ks == XK_End) {
+					x11vnc_appshare("narrower");
+				} else {
+					scroll_desktop(+1, 0, 1.0);
+				}
 			} else if (ks == XK_Home || ks == XK_KP_Home) {
-				scroll_desktop(-1, 0, 1.0);
+				if (shift_down && ks == XK_Home) {
+					x11vnc_appshare("wider");
+				} else {
+					scroll_desktop(-1, 0, 1.0);
+				}
 			} else if (ks == XK_equal || ks == XK_plus) {
-				scale_desktop(1, 0.1);
+				if (shift_down) {
+					x11vnc_appshare("raise");
+				} else {
+					scale_desktop(1, 0.1);
+				}
 			} else if (ks == XK_underscore || ks == XK_minus) {
-				scale_desktop(0, 0.1);
+				if (shift_down) {
+					x11vnc_appshare("lower");
+				} else {
+					scale_desktop(0, 0.1);
+				}
 			} else {
 				did = 0;
 			}
@@ -2503,6 +2719,8 @@ CopyDataToScreen(char *buf, int x, int y, int width, int height)
 		int scrWidthInBytes = si.framebufferWidth * myFormat.bitsPerPixel / 8;
 		XImage *im = image_scale ? image_scale : image;
 
+		if (scrWidthInBytes != im->bytes_per_line) scrWidthInBytes = im->bytes_per_line;
+
 		char *scr = (im->data + y * scrWidthInBytes
 		    + x * myFormat.bitsPerPixel / 8);
 
@@ -2525,16 +2743,19 @@ CopyDataToScreen(char *buf, int x, int y, int width, int height)
 static void
 CopyBGR233ToScreen(CARD8 *buf, int x, int y, int width, int height)
 {
+	XImage *im = image_scale ? image_scale : image;
 	int p, q;
 	int xoff = 7 - (x & 7);
 	int xcur;
 	int fbwb = si.framebufferWidth / 8;
-	XImage *im = image_scale ? image_scale : image;
-	CARD8 *scr1 = ((CARD8 *)im->data) + y * fbwb + x / 8;
-	CARD8 *scrt;
-	CARD8  *scr8  = ( (CARD8 *)im->data) + y * si.framebufferWidth + x;
-	CARD16 *scr16 = ((CARD16 *)im->data) + y * si.framebufferWidth + x;
-	CARD32 *scr32 = ((CARD32 *)im->data) + y * si.framebufferWidth + x;
+	int src_width8  = im->bytes_per_line/1;
+	int src_width16 = im->bytes_per_line/2;
+	int src_width32 = im->bytes_per_line/4;
+	CARD8 *src1 = ((CARD8 *)im->data) + y * fbwb + x / 8;
+	CARD8 *srct;
+	CARD8  *src8  = ( (CARD8 *)im->data) + y * src_width8  + x;
+	CARD16 *src16 = ((CARD16 *)im->data) + y * src_width16 + x;
+	CARD32 *src32 = ((CARD32 *)im->data) + y * src_width32 + x;
 	int b0, b1, b2;
 
 	switch (visbpp) {
@@ -2544,35 +2765,35 @@ CopyBGR233ToScreen(CARD8 *buf, int x, int y, int width, int height)
 	case 1:
 		for (q = 0; q < height; q++) {
 			xcur = xoff;
-			scrt = scr1;
+			srct = src1;
 			for (p = 0; p < width; p++) {
-				*scrt = ((*scrt & ~(1 << xcur))
+				*srct = ((*srct & ~(1 << xcur))
 					 | (BGR233ToPixel[*(buf++)] << xcur));
 
 				if (xcur-- == 0) {
 					xcur = 7;
-					scrt++;
+					srct++;
 				}
 			}
-			scr1 += fbwb;
+			src1 += fbwb;
 		}
 		break;
 
 	case 8:
 		for (q = 0; q < height; q++) {
 			for (p = 0; p < width; p++) {
-				*(scr8++) = BGR233ToPixel[*(buf++)];
+				*(src8++) = BGR233ToPixel[*(buf++)];
 			}
-			scr8 += si.framebufferWidth - width;
+			src8 += src_width8 - width;
 		}
 		break;
 
 	case 16:
 		for (q = 0; q < height; q++) {
 			for (p = 0; p < width; p++) {
-				*(scr16++) = BGR233ToPixel[*(buf++)];
+				*(src16++) = BGR233ToPixel[*(buf++)];
 			}
-			scr16 += si.framebufferWidth - width;
+			src16 += src_width16 - width;
 		}
 		break;
 
@@ -2582,25 +2803,25 @@ CopyBGR233ToScreen(CARD8 *buf, int x, int y, int width, int height)
 		} else {
 			b0 = 2; b1 = 1; b2 = 0;
 		}
-		scr8  = ((CARD8 *)im->data) + (y * si.framebufferWidth + x) * 3;
+		src8  = ((CARD8 *)im->data) + (y * si.framebufferWidth + x) * 3;
 		for (q = 0; q < height; q++) {
 			for (p = 0; p < width; p++) {
 				CARD32 v = BGR233ToPixel[*(buf++)];
-				*(scr8 + b0) = (unsigned char) ((v & 0x0000ff) >> 0);
-				*(scr8 + b1) = (unsigned char) ((v & 0x00ff00) >> 8);
-				*(scr8 + b2) = (unsigned char) ((v & 0xff0000) >> 16);
-				scr8 += 3;
+				*(src8 + b0) = (unsigned char) ((v & 0x0000ff) >> 0);
+				*(src8 + b1) = (unsigned char) ((v & 0x00ff00) >> 8);
+				*(src8 + b2) = (unsigned char) ((v & 0xff0000) >> 16);
+				src8 += 3;
 			}
-			scr8 += (si.framebufferWidth - width) * 3;
+			src8 += (si.framebufferWidth - width) * 3;
 		}
 		break;
 
 	case 32:
 		for (q = 0; q < height; q++) {
 			for (p = 0; p < width; p++) {
-				*(scr32++) = BGR233ToPixel[*(buf++)];
+				*(src32++) = BGR233ToPixel[*(buf++)];
 			}
-			scr32 += si.framebufferWidth - width;
+			src32 += src_width32 - width;
 		}
 		break;
 	}
@@ -2612,7 +2833,7 @@ BGR565_24bpp(CARD16 *buf, int x, int y, int width, int height)
 	int p, q;
 	int b0, b1, b2;
 	XImage *im = image_scale ? image_scale : image;
-	unsigned char *scr= (unsigned char *)im->data + (y * si.framebufferWidth + x) * 3;
+	unsigned char *src= (unsigned char *)im->data + (y * si.framebufferWidth + x) * 3;
 
 	if (isLSB) {
 		b0 = 0; b1 = 1; b2 = 2;
@@ -2624,12 +2845,12 @@ BGR565_24bpp(CARD16 *buf, int x, int y, int width, int height)
 	for (q = 0; q < height; q++) {
 		for (p = 0; p < width; p++) {
 			CARD32 v = BGR565ToPixel[*(buf++)];
-			*(scr + b0) = (unsigned char) ((v & 0x0000ff) >> 0);
-			*(scr + b1) = (unsigned char) ((v & 0x00ff00) >> 8);
-			*(scr + b2) = (unsigned char) ((v & 0xff0000) >> 16);
-			scr += 3;
+			*(src + b0) = (unsigned char) ((v & 0x0000ff) >> 0);
+			*(src + b1) = (unsigned char) ((v & 0x00ff00) >> 8);
+			*(src + b2) = (unsigned char) ((v & 0xff0000) >> 16);
+			src += 3;
 		}
-		scr += (si.framebufferWidth - width) * 3;
+		src += (si.framebufferWidth - width) * 3;
 	}
 }
 
@@ -2638,7 +2859,8 @@ CopyBGR565ToScreen(CARD16 *buf, int x, int y, int width, int height)
 {
 	int p, q;
 	XImage *im = image_scale ? image_scale : image;
-	CARD32 *scr32 = ((CARD32 *)im->data) + y * si.framebufferWidth + x;
+	int src_width32 = im->bytes_per_line/4;
+	CARD32 *src32 = ((CARD32 *)im->data) + y * src_width32 + x;
 
 	if (visbpp == 24) {
 		BGR565_24bpp(buf, x, y, width, height);
@@ -2648,15 +2870,15 @@ CopyBGR565ToScreen(CARD16 *buf, int x, int y, int width, int height)
 	/*  case 32: */
 	for (q = 0; q < height; q++) {
 		for (p = 0; p < width; p++) {
-			*(scr32++) = BGR565ToPixel[*(buf++)];
+			*(src32++) = BGR565ToPixel[*(buf++)];
 		}
-		scr32 += si.framebufferWidth - width;
+		src32 += src_width32 - width;
 	}
 }
 
 static void reset_image(void) {
 	if (UsingShm()) {
-		ShmCleanup();
+		ShmDetach();
 	}
 	if (image && image->data) {
 		XDestroyImage(image);
@@ -2674,6 +2896,9 @@ static void reset_image(void) {
 	}
 	image_scale = NULL;
 
+	if (UsingShm()) {
+		ShmCleanup();
+	}
 	create_image();
 	XFlush(dpy);
 }
@@ -2682,12 +2907,17 @@ void ReDoDesktop(void) {
 	int w, w0, h, h0, x, y, dw, dh;
 	int fs = 0;
 	int autoscale = 0;
+	Position x_orig, y_orig;
+	Dimension w_orig, h_orig;
 
 	if (!appData.fullScreen && appData.scale != NULL && !strcmp(appData.scale, "auto")) {
 		autoscale = 1;
 	}
 
 	fprintf(stderr, "ReDoDesktop: ycrop: %d\n", appData.yCrop);
+
+	XtVaGetValues(toplevel, XtNx, &x_orig, XtNy, &y_orig, NULL);
+	XtVaGetValues(toplevel, XtNheight, &h_orig, XtNwidth, &w_orig, NULL);
 
 	check_tall();
 
@@ -2795,9 +3025,6 @@ void ReDoDesktop(void) {
 
 	XtVaSetValues(desktop, XtNwidth, w0, XtNheight, h0, NULL);
 
-	x = (dpyWidth  - w - dw)/2;
-	y = (dpyHeight - h - dh)/2;
-
 	XtResizeWidget(desktop, w0, h0, 0);
 
 	if (appData.yCrop > 0) {
@@ -2809,7 +3036,40 @@ void ReDoDesktop(void) {
 		XtVaSetValues(form,     XtNmaxHeight, ycrop, NULL);
 	}
 
+	x = (dpyWidth  - w - dw)/2;
+	y = (dpyHeight - h - dh)/2;
+
 	if (!autoscale) {
+
+		if (!getenv("VNCVIEWER_ALWAYS_RECENTER")) {
+			int x_cm_old, y_cm_old;
+			int x_cm_new, y_cm_new;
+			int x_try, y_try;
+
+			x_cm_old = (int) x_orig + ((int) w_orig)/2;
+			y_cm_old = (int) y_orig + ((int) h_orig)/2;
+
+			x_cm_new = dpyWidth/2;
+			y_cm_new = dpyHeight/2;
+
+			x_try = x + (x_cm_old - x_cm_new);
+			y_try = y + (y_cm_old - y_cm_new);
+			if (x_try < 0) {
+				x_try = 0;
+			}
+			if (y_try < 0) {
+				y_try = 0;
+			}
+			if (x_try + w + dw > dpyWidth) {
+				x_try = dpyWidth - w - dw;
+			}
+			if (y_try + h + dh > dpyHeight) {
+				y_try = dpyHeight - h - dh;
+			}
+			x = x_try;
+			y = y_try;
+		}
+
 		XtConfigureWidget(toplevel, x + dw, y + dh, w, h, 0);
 	}
 

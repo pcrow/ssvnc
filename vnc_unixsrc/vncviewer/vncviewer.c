@@ -68,6 +68,21 @@ void set_sbwidth(int sbw) {
 	}
 }
 
+void min_title(void) {
+	char *q, *p;
+	int i, k, N = 4;
+	int db = 0;
+
+	k = 0;
+	while (fallback_resources[k] != NULL) {
+		q = strstr(fallback_resources[k], "Ssvnc.title: ");
+		if (q) {
+			fallback_resources[k] = strdup("Ssvnc.title: %s");
+		}
+		k++;
+	}
+}
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -248,15 +263,17 @@ static void chat_window_only(void) {
 	}
 }
 
+int saw_appshare = 0;
+
 int
 main(int argc, char **argv)
 {
-	int i, save_sbw;
+	int i, save_sbw, saw_listen = 0;
 	char *pw_loc = NULL;
 	programName = argv[0];
 
 	for (i = 1; i < argc; i++) {
-		if (strcmp(argv[i], "-env") == 0) {
+		if (!strcmp(argv[i], "-env")) {
 			if (i+1 < argc) {
 				char *estr = argv[i+1];
 				if (strchr(estr, '=')) {
@@ -277,36 +294,49 @@ main(int argc, char **argv)
      flag. */
 
 	for (i = 1; i < argc; i++) {
+		if (!strcmp(argv[i], "-appshare")) {
+			putenv("SSVNC_MULTIPLE_LISTEN=1");
+			fprintf(stderr, "Enabling -multilisten mode for 'x11vnc -appshare' usage.\n\n");
+			saw_appshare = 1;
+		}
+		if (!strcmp(argv[i], "-multilisten")) {
+			putenv("SSVNC_MULTIPLE_LISTEN=1");
+			saw_listen = 2;
+		}
+		if (!strcmp(argv[i], "-listen")) {
+			saw_listen = 1;
+		}
+		if (!strcmp(argv[i], "-acceptpopup")) {
+			putenv("SSVNC_ACCEPT_POPUP=1");
+		}
+		if (!strcmp(argv[i], "-acceptpopupsc")) {
+			putenv("SSVNC_ACCEPT_POPUP_SC=1");
+		}
 		if (strstr(argv[i], " pw=") != NULL) {
 			pw_loc = strstr(argv[i], " pw=") + 1;
 		}
 	}
 
 	for (i = 1; i < argc; i++) {
-		if (strcmp(argv[i], "-acceptpopup") == 0) {
-			putenv("SSVNC_ACCEPT_POPUP=1");
-			continue;
-		}
-		if (strcmp(argv[i], "-acceptpopupsc") == 0) {
-			putenv("SSVNC_ACCEPT_POPUP_SC=1");
-			continue;
-		}
-		if (strcmp(argv[i], "-listen") == 0) {
+		if (!strcmp(argv[i], "-appshare") && !saw_listen) {
 			listenForIncomingConnections(&argc, argv, i);
 			break;
 		}
-		if (strcmp(argv[i], "-multilisten") == 0) {
-			putenv("SSVNC_MULTIPLE_LISTEN=1");
+		if (!strcmp(argv[i], "-multilisten")) {
 			listenForIncomingConnections(&argc, argv, i);
 			break;
 		}
-		if (strcmp(argv[i], "-tunnel") == 0 || strcmp(argv[i], "-via") == 0) {
+		if (!strcmp(argv[i], "-listen")) {
+			listenForIncomingConnections(&argc, argv, i);
+			break;
+		}
+		if (!strcmp(argv[i], "-tunnel") || !strcmp(argv[i], "-via")) {
 			if (!createTunnel(&argc, argv, i)) {
 				exit(1);
 			}
 			break;
 		}
-		if (strcmp(argv[i], "-printres") == 0 || strcmp(argv[i], "-res") == 0) {
+		if (!strcmp(argv[i], "-printres") || !strcmp(argv[i], "-res")) {
 			int j = 0;
 			fprintf(stdout, "\n! Ssvnc fallback X resources:\n\n");
 			while (1) {
@@ -336,6 +366,9 @@ main(int argc, char **argv)
      generating appropriate resource specs, and makes a connection to the X
      display. */
 
+	if (saw_appshare || getenv("VNCVIEWER_MIN_TITLE")) {
+		min_title();
+	}
 	appData.sbWidth = 0;
 	if (getenv("VNCVIEWER_SBWIDTH")) {
 		int sbw = atoi(getenv("VNCVIEWER_SBWIDTH"));
@@ -373,6 +406,10 @@ main(int argc, char **argv)
      for one to be entered. */
 
 	GetArgsAndResources(argc, argv);
+
+	if (saw_appshare) {
+		appData.appShare = True;
+	}
 
 	if (save_sbw) {
 		appData.sbWidth = save_sbw;
