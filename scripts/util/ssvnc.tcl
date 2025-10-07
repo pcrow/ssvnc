@@ -8,7 +8,7 @@ exec wish "$0" "$@"
 # ssvnc.tcl: gui wrapper to the programs in this
 # package. Also sets up service port forwarding.
 #
-set version 1.0.28
+set version 1.0.29
 
 set buck_zero $argv0
 
@@ -1530,6 +1530,10 @@ proc help {} {
 
         You can set any environment variable in ~/.ssvncrc by using a line
         like env=VAR=value, for example:  env=SSVNC_FINISH_SLEEP=2
+        (use single quotes to preserve trailing spaces, for example:
+        env=SSVNC_XTERM_REPLACEMENT=' ' to disable the terminal on unix)
+
+	You can also set env=VAR1=value1 env=VAR2=value2 on the command line.
 
         To change the fonts (see Tip 4 below for examples):
 
@@ -1716,7 +1720,7 @@ proc help {} {
         You can change the X DISPLAY variable by typing DISPLAY=... into
         VNC Host:Display and hitting Return or clicking Connect. Same
         for HOME=.  On Mac, you can set DYLD_LIBRARY_PATH=... too.
-        It should propagate down the viewer.
+        It should propagate down the viewer.  More can be set, read on...
 
         Setting SLEEP=n increases the amount of time waited before
         starting the viewer.  The env. var. SSVNC_EXTRA_SLEEP also does
@@ -1724,12 +1728,26 @@ proc help {} {
         amount of time slept before the Terminal window exits on Unix
         and MacOS X.  (same as SSVNC_FINISH_SLEEP env. var.)
 
+        Set SSVNC_EXTRA_COMMAND to a unix command to run in background
+        just before vncviewer is launched (e.g. "sleep 5; xwit -unmap"
+        will make the xterm disappear forever after 5 seconds.)
+
         Full list of parameters HOME/SSVNC_HOME, DISPLAY/SSVNC_DISPLAY
-        DYLD_LIBRARY_PATH/SSVNC_DYLD_LIBRARY_PATH, SLEEP/SSVNC_EXTRA_SLEEP
-        FINISH/SSVNC_FINISH_SLEEP, DEBUG_NETSTAT, REPEATER_FORCE,
-        SSH_ONLY, TS_ONLY, NO_DELETE, BAT_SLEEP, IPV6/SSVNC_IPV6=0 or 1.
-        See below for more info.  (the ones joined by "/" are equivalent
-        names, and the latter can be set as an env. var. as well.)
+        DYLD_LIBRARY_PATH/SSVNC_DYLD_LIBRARY_PATH, SLEEP/SSVNC_EXTRA_SLEEP,
+        EXTRA_COMMAND/SSVNC_EXTRA_COMMAND FINISH/SSVNC_FINISH_SLEEP,
+        DEBUG_NETSTAT, REPEATER_FORCE, SSH=..., SSH_ONLY, TS_ONLY,
+        NO_DELETE, BAT_SLEEP, IPV6/SSVNC_IPV6=0 or 1.  See below for
+        more info.  (the ones joined by "/" are equivalent names, and
+        the latter can be set as an env. var. as well.)
+
+        SSH sets the ssh command to use, e.g. SSH=/path/to/ssh_wrapper
+        Set ssh options via the environment e.g.: export SSH='ssh -a' or
+        put this in ~/.ssvncrc: env=SSH=ssh -a
+
+        Note that you can supply ANY ssh cmdline options you want to
+        by using Options -> Advanced -> Additional Port Redirs (via SSH)
+        This sets the ssh cmdline options on a per-connection level instead
+        of globally like the SSH variable does.
 
         After you set the parameter, clear out the 'VNC Host:Display'
         entry and replace it with the actual host and display number.
@@ -1742,6 +1760,11 @@ proc help {} {
         Examples: SSVNC_XTERM_REPLACEMENT='gnome-terminal -e'
                   SSVNC_XTERM_REPLACEMENT='gnome-terminal -t "%TITLE" -e'
                   SSVNC_XTERM_REPLACEMENT='konsole -e'
+        Trick: set SSVNC_XTERM_REPLACEMENT=' ' (i.e. to a space) or to 'env' 
+        to have NO terminal appear: of course there should not be any
+        SSH or VNC passphrases or passwords for the connection because
+        the program may not be able to prompt you for your reply.
+        (Also for this trick you may want to set SSVNC_FINISH_SLEEP=0)
 
         More info: EXTRA_SLEEP: seconds of extra sleep in scripts; 
         FINISH_SLEEP: final extra sleep at end; DEBUG_NETSTAT put up a
@@ -1753,10 +1776,12 @@ proc help {} {
         like ENV=VAR=VAL  e.g. ENV=SSH_AUTH_SOCK=/tmp/ssh-BF2297/agent.2297
         Use an empty VAL to unset the variable.
 
+	You can also set env=VAR1=value1 env=VAR2=value2 on the command line.
+
         There are also a HUGE number of env. vars. that apply to the Unix
         and MacOS X wrapper script 'ss_vncviewer' and/or the ssvncviewer
         binary.  See Options -> Advanced -> Unix ssvncviewer -> Help for
-        all of them.
+        all of them.  Some apply to non-unix modes as well.
 
     16) On Unix you can make the "Open File" and "Save File" dialogs
         bigger by setting the env. var. SSVNC_BIGGER_DIALOG=1 or
@@ -7165,6 +7190,14 @@ proc vencrypt_tutorial_mesg {} {
 	#	set m "No VeNCrypt Auto-Detection: 'Verify All Certs' disabled"
 }
 
+proc check_once_only {} {
+	global env
+	if [info exists env(SSVNC_ONCE_ONLY)] {
+		destroy .
+		exit
+	}
+}
+
 proc launch_unix {hp} {
 	global smb_redir_0 smb_mounts env
 	global vncauth_passwd use_unixpw unixpw_username unixpw_passwd
@@ -7564,6 +7597,7 @@ proc launch_unix {hp} {
 			set env(SS_VNCVIEWER_SSH_ONLY) ""
 			set env(SS_VNCVIEWER_USE_C) ""
 			reset_stunnel_extra_opts
+			check_once_only
 			return
 		}
 	} else {
@@ -8080,6 +8114,7 @@ proc launch_unix {hp} {
 	reset_stunnel_extra_opts
 
 	fini_unixpw
+	check_once_only
 }
 
 proc kill_stunnel {pids} {
@@ -8379,6 +8414,15 @@ proc launch {{hp ""}} {
 		set vncdisplay ""
 		return 0
 	}
+	if {[regexp {^EXTRA_COMMAND=} $hpt] || [regexp {^SSVNC_EXTRA_COMMAND=} $hpt]} {
+		set t $hpt
+		regsub {^.*EXTRA_COMMAND=} $t "" t
+		set t [string trim $t]
+		set env(SSVNC_EXTRA_COMMAND) $t
+		mesg "Set SSVNC_EXTRA_COMMAND to $t"
+		set vncdisplay ""
+		return 0
+	}
 	if {[regexp {^SSH=} $hpt]} {
 		set t $hpt
 		regsub {^.*SSH=} $t "" t
@@ -8458,7 +8502,7 @@ proc launch {{hp ""}} {
 		set vncdisplay ""
 		return 0
 	}
-	if {[regexp {^ENV=([A-z0-9][A-z0-9]*)=(.*)$} $hpt mv var val]} {
+	if {[regexp -nocase {^ENV=([A-z0-9][A-z0-9]*)=(.*)$} $hpt mv var val]} {
 		global env
 		if {$val == ""} {
 			catch {unset env($var)}
@@ -8535,6 +8579,7 @@ proc launch {{hp ""}} {
 
 	if {! $is_windows} {
 		launch_unix $hp
+		check_once_only
 		return
 	}
 
@@ -8547,6 +8592,7 @@ proc launch {{hp ""}} {
 		}
 		regsub {^vnc://} $hp "" hp
 		direct_connect_windows $hp
+		check_once_only
 		return
 	} elseif [regexp {^vncs://} $hp] {
 		set use_ssl 1
@@ -8719,12 +8765,14 @@ proc launch {{hp ""}} {
 				catch {file delete $file2}
 			}
 			del_launch_windows_ssh_files
+			check_once_only
 			return
 		}
 		set did_port_knock 1
 	} elseif {$use_ssh} {
 		launch_windows_ssh $hp $file1 $n1
 		# WE ARE DONE.
+		check_once_only
 		return
 	}
 
@@ -9100,6 +9148,7 @@ proc launch {{hp ""}} {
 	if {! $is_win9x && $use_sound && $sound_daemon_local_kill && $sound_daemon_local_cmd != ""} {
 		windows_stop_sound_daemon
 	}
+	check_once_only
 }
 
 proc direct_connect_windows {{hp ""}} {
@@ -12624,7 +12673,7 @@ proc ts_x11vnc_opts_dialog {} {
 	toplev .x11v
 	wm title .x11v "x11vnc Options"
 
-	set h 23
+	set h 24
 	if [small_height] {
 		set h 21
 	}
@@ -12644,6 +12693,7 @@ proc ts_x11vnc_opts_dialog {} {
     Port Redirs are additional SSH "-L port:host:port" or "-R port:host:port"
     (forward or reverse, resp.) port redirections you want.  In SSVNC mode,
     see the detailed description under: Options -> Advanced -> Port Redirs.
+    You can also specify any other SSH cmdline options you want.
 
     Some potentially useful options:
 
@@ -13231,11 +13281,14 @@ proc ts_sound_dialog {} {
 	}
 
 	if {$sound_daemon_local_cmd == ""} {
-		global is_windows
+		global is_windows env
 		if {$is_windows} {
 			set sound_daemon_local_cmd {esound\esd -promiscuous -as 5 -port %PORT -tcp -bind 127.0.0.1}
 		} else {
 			set sound_daemon_local_cmd {esd -promiscuous -as 5 -port %PORT -tcp -bind 127.0.0.1}
+		}
+		if [info exists env(SSVNC_ESD_ARGS)] {
+			set sound_daemon_local_cmd "$sound_daemon_local_cmd $env(SSVNC_ESD_ARGS)";
 		}
 	}
 	regsub {%PORT} $sound_daemon_local_cmd $sound_daemon_local_port sound_daemon_local_cmd
@@ -13325,6 +13378,7 @@ proc sound_dialog {} {
         artsd -n -p 7265 -F 10 -S 4096 -n -s 5 -m artsmessage -l 3 -f
 
     or you can leave some or all blank and kill/start them manually.
+    Set SSVNC_ESD_ARGS for more options to esd.
 
     For convenience, a Windows port of ESD is provided in the util/esound
     directory, and so this might work for a Local command:
@@ -13357,11 +13411,14 @@ proc sound_dialog {} {
 	}
 
 	if {$sound_daemon_local_cmd == ""} {
-		global is_windows
+		global is_windows env
 		if {$is_windows} {
 			set sound_daemon_local_cmd {esound\esd -promiscuous -as 5 -port %PORT -tcp -bind 127.0.0.1}
 		} else {
 			set sound_daemon_local_cmd {esd -promiscuous -as 5 -port %PORT -tcp -bind 127.0.0.1}
+		}
+		if [info exists env(SSVNC_ESD_ARGS)] {
+			set sound_daemon_local_cmd "$sound_daemon_local_cmd $env(SSVNC_ESD_ARGS)";
 		}
 		regsub {%PORT} $sound_daemon_local_cmd $sound_daemon_local_port sound_daemon_local_cmd
 	}
@@ -14224,7 +14281,8 @@ proc help_advanced_opts {} {
 
          Specify additional -L port:host:port and -R port:host:port
          cmdline options for SSH to enable additional services.
-         SSH mode is required.
+         SSH mode is required.  You can also specify any other SSH
+         cmdline options you want.
 
       Automatically Find X Login/Greeter:
 
@@ -14728,11 +14786,13 @@ proc help_ssvncviewer_opts {} {
          SS_VNCVIEWER_LISTEN_PORT (force listen port.)
          SS_VNCVIEWER_NO_F        (no -f for SSH.)
          SS_VNCVIEWER_NO_T        (no -t for SSH.)
-         SS_VNCVIEWER_USE_C       (force -C compression for SSH.)
-         SS_VNCVIEWER_SSH_CMD     (override SSH command to run.)
          SS_VNCVIEWER_NO_MAXCONN  (no maxconn for stunnel (obsolete))
          SS_VNCVIEWER_RM          (file containing vnc passwd to remove.)
          SS_VNCVIEWER_SSH_ONLY    (run the SSH command, then exit.)
+         SS_VNCVIEWER_USE_C       (force -C compression for SSH.)
+         SS_VNCVIEWER_SSH_CMD     (override command to for SSH to run.)
+         SSH                      (override the ssh(1) command and options
+                                   e.g.  SSH='ssh -a -i /path/to/my/id.rsa')
 
          SSVNC_MULTIPLE_LISTEN    (-multilisten, see Multiple LISTEN above)
          SSVNC_ACCEPT_POPUP       (-acceptpopup, see Accept Popup Dialog)
@@ -14752,6 +14812,7 @@ proc help_ssvncviewer_opts {} {
          SSVNC_MESG_DELAY         (sleep this many millisec between messages)
          SSVNC_NO_ENC_WARN        (do not print out a NO ENCRYPTION warning)
          SSVNC_EXTRA_SLEEP        (same as Sleep: window)
+         SSVNC_EXTRA_COMMAND      (command to run in background before viewer)
          SSVNC_NO_ULTRA_DSM       (disable ultravnc dsm encryption)
          SSVNC_ULTRA_DSM          (the ultravnc_dsm_helper command)
          SSVNC_ULTRA_FTP_JAR      (file location of ultraftp.jar jar file)
@@ -14763,6 +14824,7 @@ proc help_ssvncviewer_opts {} {
          SSVNC_NO_MAYBE_SYNC      (skip XSync() calls in certain painting)
          SSVNC_MAX_LISTEN         (number of time to listen for reverse conn.)
          SSVNC_LISTEN_ONCE        (listen for reverse conn. only once)
+         SSVNC_ONCE_ONLY          (exit after the first connection ends)
          STUNNEL_LISTEN           (stunnel interface for reverse conn.
          SSVNC_NO_MESSAGE_POPUP   (do not place info messages in popup.)
          SSVNC_SET_SECURITY_TYPE  (force VeNCrypt security type)
@@ -14795,6 +14857,7 @@ proc help_ssvncviewer_opts {} {
          SSVNC_EXIT_DEBUG         (testing: prompt to exit at end.)
          SSVNC_UP_DEBUG           (gui user/passwd debug mode.)
          SSVNC_UP_FILE            (gui user/passwd file.)
+         SSVNC_XTERM_REPLACEMENT  (terminal program to use, ' ' for none.)
 
          STUNNEL_EXTRA_OPTS       (extra options for stunnel.)
 
@@ -14921,7 +14984,7 @@ proc port_redir_dialog {} {
 	wm title .redirs "Additional Port Redirections (via SSH)"
 
 	global help_font uname
-	set h 35
+	set h 38
 	if [small_height] {
 		set h 27
 	}
@@ -14956,6 +15019,9 @@ proc port_redir_dialog {} {
 
     etc.  There are many interesting possibilities.
 
+    You can also specify ANY other ssh cmdline options you like, for
+    example: -a -v -g -Snone, etc.
+
     Sometimes, especially for Windows Shares, you cannot do a -R redir to
     localhost, but need to supply the IP address of the network interface
     (e.g. by default the Shares do not listen on localhost:139).  As a
@@ -14966,7 +15032,7 @@ proc port_redir_dialog {} {
 	.redirs.t insert end $msg
 
 	frame .redirs.path
-	label .redirs.path.l -text "Port Redirs:"
+	label .redirs.path.l -text "Port Redirs (or SSH options):"
 	entry .redirs.path.e -width 40 -textvariable additional_port_redirs_list
 
 	pack .redirs.path.l -side left
@@ -18258,8 +18324,18 @@ proc toggle_vnc_prefix {} {
 }
 
 ############################################
+# start of main
 
 global env
+
+for {set i 0} {$i < $argc} {incr i} {
+	set str [lindex $argv $i]
+	if [regexp -nocase {^env=} $str] {
+		if [regexp -nocase {^env=([^=]*)=(.*)$} $str m var val] {
+			set env($var) $val
+		}
+	}
+}
 
 if {[regexp -nocase {Windows.9} $tcl_platform(os)]} {
 	set is_win9x 1
@@ -18527,8 +18603,10 @@ if [file exists $ssvncrc] {
 				set val [string trim $val]
 				set crlfil_default $val
 			}
-			if [regexp {^env=([^=]*)=(.*)$} $str m var val] {
+			if [regexp -nocase {^env=([^=]*)=(.*)$} $str m var val] {
 				global env
+				regsub {'$} $val "" val
+				regsub {^'} $val "" val
 				set env($var) $val
 			}
 		}
@@ -18539,7 +18617,9 @@ if [file exists $ssvncrc] {
 for {set i 0} {$i < $argc} {incr i} {
 	set item [lindex $argv $i]
 	regsub {^--} $item "-" item
-	if {$item == "-profiles" || $item == "-list"} {
+	if [regexp -nocase {^env=} $item] {
+		;
+	} elseif {$item == "-profiles" || $item == "-list"} {
 		set dir [get_profiles_dir]
 		#puts stderr "VNC Profiles:"
 		#puts stderr " "
@@ -18968,7 +19048,9 @@ set didload 0
 for {set i 0} {$i < $argc} {incr i} {
 	set item [lindex $argv $i]
 	regsub {^--} $item "-" item
-	if {$item == "."} {
+	if [regexp -nocase {^env=} $item] {
+		;
+	} elseif {$item == "."} {
 		;
 	} elseif {$item == "-nv"} {
 		set always_verify_ssl 0

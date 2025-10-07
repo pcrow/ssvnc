@@ -31,7 +31,11 @@
 
 char *fallback_resources[] = {
 
+#if (defined(__MACH__) && defined(__APPLE__))
+  "Ssvnc.title: SSVNC: %s - Press F7 for Menu",
+#else
   "Ssvnc.title: SSVNC: %s - Press F8 for Menu",
+#endif
 
   "Ssvnc.translations:\
     <Enter>: SelectionToVNC()\\n\
@@ -94,6 +98,20 @@ char *fallback_resources[] = {
      <KeyPress>Left:  StartScroll(Backward)\\n\
      <KeyRelease>Left:  NotifyScroll(FullLength) EndScroll()",
 
+#if (defined(__MACH__) && defined(__APPLE__))
+  "*desktop.baseTranslations:\
+     <KeyPress>F7:  ShowPopup()\\n\
+     <KeyRelease>F7:  Noop()\\n\
+     <KeyPress>F8:  ShowPopup()\\n\
+     <KeyRelease>F8:  Noop()\\n\
+     <KeyPress>F9:  ToggleFullScreen()\\n\
+     <KeyRelease>F9:  Noop()\\n\
+     <ButtonPress>: SendRFBEvent()\\n\
+     <ButtonRelease>: SendRFBEvent()\\n\
+     <Motion>: SendRFBEvent()\\n\
+     <KeyPress>: SendRFBEvent()\\n\
+     <KeyRelease>: SendRFBEvent()",
+#else
   "*desktop.baseTranslations:\
      <KeyPress>F8:  ShowPopup()\\n\
      <KeyRelease>F8:  Noop()\\n\
@@ -104,6 +122,7 @@ char *fallback_resources[] = {
      <Motion>: SendRFBEvent()\\n\
      <KeyPress>: SendRFBEvent()\\n\
      <KeyRelease>: SendRFBEvent()",
+#endif
 
   "*serverDialog.dialog.label: VNC server:",
   "*serverDialog.dialog.value:",
@@ -274,9 +293,15 @@ char *fallback_resources[] = {
      SendRFBEvent(keyup,Control_L)\
      HidePopup()",
 
+#if (defined(__MACH__) && defined(__APPLE__))
+  "*popup*button8.label: Send F7",
+  "*popup*button8.translations: #override\\n\
+     <Btn1Down>,<Btn1Up>: SendRFBEvent(key,F7) HidePopup()",
+#else
   "*popup*button8.label: Send F8",
   "*popup*button8.translations: #override\\n\
      <Btn1Down>,<Btn1Up>: SendRFBEvent(key,F8) HidePopup()",
+#endif
 
   "*popup*button9.label: Send F9",
   "*popup*button9.translations: #override\\n\
@@ -1132,6 +1157,7 @@ usage(void)
 	  "       %s [<OPTIONS>] exec=[CMD ARGS...]\n"
 	  "       %s [<OPTIONS>] fd=n\n"
 	  "       %s [<OPTIONS>] /path/to/unix/socket\n"
+	  "       %s [<OPTIONS>] unix=/path/to/unix/socket\n"
 	  "       %s [<OPTIONS>] -listen [<DISPLAY#>]\n"
 	  "       %s -help\n"
 	  "\n"
@@ -1180,14 +1206,17 @@ usage(void)
 	  "         viewer is attached to its stdio.  This enables tunnelling\n"
 	  "         established via an external command, e.g. an stunnel(8)\n"
 	  "         that does not involve a listening socket.  This mode does\n"
-	  "         not work for -listen reverse connections.\n"
+	  "         not work for -listen reverse connections.  To not have the\n"
+	  "         exec= pid killed at exit, set SSVNC_NO_KILL_EXEC_CMD=1.\n"
 	  "\n"
 	  "         If the host:port is specified as \"fd=n\" then it is assumed\n"
 	  "         n is an already opened file descriptor to the socket. (i.e\n"
 	  "         the parent did fork+exec)\n"
 	  "\n"
-	  "         If the host:port contains a '/' it is interpreted as a\n"
-	  "         unix-domain socket (AF_LOCAL insead of AF_INET)\n"
+	  "         If the host:port contains a '/' and exists in the file system\n"
+	  "         it is interpreted as a unix-domain socket (AF_LOCAL/AF_UNIX\n"
+	  "         instead of AF_INET)  Prefix with unix= to force interpretation\n"
+	  "         as a unix-domain socket.\n"
 	  "\n"
 	  "        -multilisten  As in -listen (reverse connection listening) except\n"
 	  "                    allow more than one incoming VNC server to be connected\n"
@@ -1535,7 +1564,7 @@ usage(void)
 	  "        Send Clipboard not Primary  ~ -sendclipboard\n"
 	  "        Send Selection Every time   ~ -sendalways\n"
 	  "\n"
-	  "\n", programName, programName, programName, programName, programName, programName, programName);
+	  "\n", programName, programName, programName, programName, programName, programName, programName, programName);
   exit(1);
 }
 #if 0

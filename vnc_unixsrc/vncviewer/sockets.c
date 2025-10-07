@@ -32,6 +32,7 @@
 #include <netdb.h>
 #include <fcntl.h>
 #include <assert.h>
+#include <ctype.h>
 #include <vncviewer.h>
 
 #ifndef SOL_IPV6

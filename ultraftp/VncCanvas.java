@@ -31,13 +31,17 @@ import java.util.zip.*;
 import java.util.Collections;
 // end runge/x11vnc
 
+// begin runge/x11vnc
+// all the MouseWheel stuff below.
+// end runge/x11vnc
+
 //
 // VncCanvas is a subclass of Canvas which draws a VNC desktop on it.
 //
 
 class VncCanvas
 	extends Canvas
-	implements KeyListener, MouseListener, MouseMotionListener {
+	implements KeyListener, MouseListener, MouseMotionListener, MouseWheelListener {
 
 	VncViewer viewer;
 	RfbProto rfb;
@@ -205,6 +209,7 @@ this.setFocusTraversalKeys(KeyboardFocusManager.BACKWARD_TRAVERSAL_KEYS,
 			inputEnabled = true;
 			addMouseListener(this);
 			addMouseMotionListener(this);
+			addMouseWheelListener(this);
 			if (viewer.showControls) {
 				viewer.buttonPanel.enableRemoteAccessControls(true);
 			}
@@ -212,6 +217,7 @@ this.setFocusTraversalKeys(KeyboardFocusManager.BACKWARD_TRAVERSAL_KEYS,
 			inputEnabled = false;
 			removeMouseListener(this);
 			removeMouseMotionListener(this);
+			removeMouseWheelListener(this);
 			if (viewer.showControls) {
 				viewer.buttonPanel.enableRemoteAccessControls(false);
 			}
@@ -1362,6 +1368,9 @@ this.setFocusTraversalKeys(KeyboardFocusManager.BACKWARD_TRAVERSAL_KEYS,
 	public void mouseDragged(MouseEvent evt) {
 		processLocalMouseEvent(evt, true);
 	}
+	public void mouseWheelMoved(MouseWheelEvent evt) {
+		processLocalMouseWheelEvent(evt);
+	}
 
 	public void processLocalKeyEvent(KeyEvent evt) {
 		if (viewer.rfb != null && rfb.inNormalProtocol) {
@@ -1395,6 +1404,19 @@ this.setFocusTraversalKeys(KeyboardFocusManager.BACKWARD_TRAVERSAL_KEYS,
 		// Don't ever pass keyboard events to AWT for default processing. 
 		// Otherwise, pressing Tab would switch focus to ButtonPanel etc.
 		evt.consume();
+	}
+
+	public void processLocalMouseWheelEvent(MouseWheelEvent evt) {
+		if (viewer.rfb != null && rfb.inNormalProtocol) {
+			synchronized(rfb) {
+			try {
+				rfb.writeWheelEvent(evt);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+				rfb.notify();
+			}
+		}
 	}
 
 	public void processLocalMouseEvent(MouseEvent evt, boolean moved) {

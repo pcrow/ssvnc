@@ -2,13 +2,13 @@
 .\" ** The above line should force tbl to be a preprocessor **
 .\" Man page for the SSVNC vncviewer
 .\"
-.\" Copyright (C) 2006-2009 Karl J. Runge <runge@karlrunge.com>
+.\" Copyright (C) 2006-2011 Karl J. Runge <runge@karlrunge.com>
 .\"
 .\" You may distribute under the terms of the GNU General Public
 .\" License as specified in the file LICENCE.TXT that comes with the
 .\" TightVNC distribution.
 .\"
-.TH ssvnc 1 "December 2009" "" "SSVNC"
+.TH ssvnc 1 "January 2011" "" "SSVNC"
 .SH NAME
 ssvnc \- a GUI wrapper for SSL and SSH VNC connections.
 .SH SYNOPSIS
@@ -26,6 +26,10 @@ ssvnc \- a GUI wrapper for SSL and SSH VNC connections.
 .B ssvnc
 .IR \-cmd
 .RI [\| ssvnc_cmd-args \|]
+.br
+.B ssvnc
+.IR \-viewer
+.RI [\| viewer-args \|]
 .br
 .B ssvnc
 .IR \--help
@@ -94,7 +98,11 @@ main Help panel.
 Launch the ssvnc_cmd utility command directly (no GUI) with the given
 arguments (for use when ssvnc_cmd is not in one's PATH.) If neither
 ssvnc_cmd nor ssvncviewer is in PATH, one can launch the viewer
-directly via: ssvnc -cmd -viewer [viewer-args]
+directly via: ssvnc -cmd -viewer [viewer-args] See the next
+option -viewer for an alias.
+.TP
+\fB\-viewer\fR \fI[viewer-args]\fR
+Shorthand for ssvnc -cmd -viewer [viewer-args].
 .TP
 \fB\-profiles\fR
 List the saved SSVNC profiles you have created.  A profile

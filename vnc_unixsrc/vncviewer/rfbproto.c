@@ -37,12 +37,15 @@
 int server_major = 0, server_minor = 0;
 int viewer_major = 0, viewer_minor = 0;
 
+pid_t exec_pid = 0;
+
 static void InitCapabilities(void);
 static Bool SetupTunneling(void);
 static int ReadSecurityType(void);
 static int SelectSecurityType(void);
 static Bool PerformAuthenticationTight(void);
 static Bool AuthenticateVNC(void);
+static Bool AuthenticateUltraVNC(void);
 static Bool AuthenticateUnixLogin(void);
 static Bool ReadInteractionCaps(void);
 static Bool ReadCapabilityList(CapsContainer *caps, int count);
@@ -148,6 +151,18 @@ extern void UvncEncryptPasswd_MSLOGON(unsigned char *encryptedPasswd, char *pass
 extern void UvncEncryptBytes2(unsigned char *where, int length, unsigned char *key);
 extern void UvncDecryptBytes2(unsigned char *where, int length, unsigned char *key);
 extern unsigned int urandom(void);
+
+/* for ultravnc 1.0.9.5 / RFB 3.8 */
+#define rfbUltraVNC_SCPrompt 0x68
+#define rfbUltraVNC_SessionSelect 0x69
+#define rfbUltraVNC_MsLogonIAuth 0x70
+#define rfbUltraVNC_MsLogonIIAuth 0x71
+#define rfbUltraVNC_SecureVNCPluginAuth 0x72
+#define rfbLegacy_SecureVNCPlugin 17
+#define rfbLegacy_MsLogon 0xfffffffa
+
+#define rfbVncAuthContinue 0xffffffff
+
 
 int endianTest = 1;
 
@@ -354,6 +369,7 @@ ConnectToRFBServer(const char *hostname, int port)
 		} else {
 			close(sfd[0]);
 			rfbsock = sfd[1];
+			exec_pid = pid;
 		}
 		if (rfbsock < 0) {
 			sprintf(msgbuf,"Unable to connect to exec'd command: %s\n", cmd);
@@ -362,9 +378,14 @@ ConnectToRFBServer(const char *hostname, int port)
 		}
 	} else if (strstr(hostname, "fd=") == hostname) {
 		rfbsock = atoi(hostname + strlen("fd="));
-	} else if (strchr(hostname, '/') && stat(hostname, &sb) == 0) {
+	} else if ((strchr(hostname, '/') && stat(hostname, &sb) == 0) || strstr(hostname, "unix=") == hostname) {
 		/* assume unix domain socket */
-		char *thost = strdup(hostname); 
+		char *thost; 
+		if (strstr(hostname, "unix=") == hostname) {
+			thost = strdup(hostname + strlen("unix=")); 
+		} else {
+			thost = strdup(hostname); 
+		}
 
 		rfbsock = ConnectToUnixSocket(thost);
 		free(thost);
@@ -424,18 +445,30 @@ static void printFailureReason(void) {
 
 static char *pr_sec_type(int type) {
 	char *str = "unknown";
-	if (type == rfbSecTypeInvalid) str = "rfbSecTypeInvalid";
-	if (type == rfbSecTypeNone) str = "rfbSecTypeNone";
-	if (type == rfbSecTypeVncAuth) str = "rfbSecTypeVncAuth";
-	if (type == rfbSecTypeRA2) str = "rfbSecTypeRA2";
-	if (type == rfbSecTypeRA2ne) str = "rfbSecTypeRA2ne";
-	if (type == rfbSecTypeTight) str = "rfbSecTypeTight";
-	if (type == rfbSecTypeUltra) str = "rfbSecTypeUltra";
+	if (type == rfbSecTypeInvalid)	str = "rfbSecTypeInvalid";
+	if (type == rfbSecTypeNone)	str = "rfbSecTypeNone";
+	if (type == rfbSecTypeVncAuth)	str = "rfbSecTypeVncAuth";
+	if (type == rfbSecTypeRA2)	str = "rfbSecTypeRA2";
+	if (type == rfbSecTypeRA2ne)	str = "rfbSecTypeRA2ne";
+	if (type == rfbSecTypeTight)	str = "rfbSecTypeTight";
+	if (type == rfbSecTypeUltra)	str = "rfbSecTypeUltra";
 
-	if (type == rfbSecTypeAnonTls) str = "rfbSecTypeAnonTls";
-	if (type == rfbSecTypeVencrypt) str = "rfbSecTypeVencrypt";
+	if (type == rfbSecTypeAnonTls)	str = "rfbSecTypeAnonTls";
+	if (type == rfbSecTypeVencrypt)	str = "rfbSecTypeVencrypt";
 
-	if (type == (int) rfbUltraVncMsLogon) str = "rfbUltraVncMsLogon";
+	if (type == (int) rfbUltraVncMsLogon)		str = "rfbUltraVncMsLogon";
+
+	/* careful, not all security types below: */
+	if (!strcmp(str, "unknown")) {
+		if (type == rfbUltraVNC_SCPrompt)		str = "rfbUltraVNC_SCPrompt";
+		if (type == rfbUltraVNC_SessionSelect)		str = "rfbUltraVNC_SessionSelect";
+		if (type == rfbUltraVNC_MsLogonIAuth)		str = "rfbUltraVNC_MsLogonIAuth";
+		if (type == rfbUltraVNC_MsLogonIIAuth)		str = "rfbUltraVNC_MsLogonIIAuth";
+		if (type == rfbUltraVNC_SecureVNCPluginAuth)	str = "rfbUltraVNC_SecureVNCPluginAuth";
+		if (type == rfbLegacy_SecureVNCPlugin)		str = "rfbLegacy_SecureVNCPlugin";
+		if (type == rfbLegacy_MsLogon)			str = "rfbLegacy_MsLogon";
+	}
+
 	return str;
 }
 
@@ -452,6 +485,7 @@ static char *pr_sec_subtype(int type) {
 }
 
 extern void ProcessXtEvents(void);
+extern char *time_str(void);
 /*
  * InitialiseRFBConnection.
  */
@@ -734,6 +768,7 @@ InitialiseRFBConnection(void)
 		}
 		msg_buf = (char *)calloc(msg_sz + 100, 1);
 		if (!ReadFromRFBServer(msg_buf, msg_sz)) {
+			free(msg_buf);
 			return False;
 		}
 
@@ -748,7 +783,7 @@ InitialiseRFBConnection(void)
 		sih = ip2host(sip);
 		if (strlen(sih) > 300) sih = "unknown";
 
-		sprintf(msg, "\n(LISTEN) Reverse VNC connection from IP: %s\n                               Hostname: %s\n\n", sip, sih);
+		sprintf(msg, "\n(LISTEN) Reverse VNC connection from IP: %s  %s\n                               Hostname: %s\n\n", sip, time_str(), sih);
 		strcat(msg, "UltraVNC Server Message:\n");
 		strcat(msg, msg_buf);
 		free(msg_buf);
@@ -785,7 +820,7 @@ InitialiseRFBConnection(void)
 		latency = (dt_out - dt) * 1000;
 	}
 	
-	fprintf(stderr, "Security-Type: %d (%s)  Latency: %.2f ms\n", (int) secType, pr_sec_type(secType), latency);
+	fprintf(stderr, "Security-Type: %3d  (%s)  Latency: %.2f ms\n", (int) secType, pr_sec_type(secType), latency);
 	if (secType == rfbSecTypeInvalid) {
 		return False;
 	}
@@ -895,6 +930,11 @@ InitialiseRFBConnection(void)
 				return False;
 			}
 			break;
+		case rfbSecTypeUltra:
+			if (!AuthenticateUltraVNC()) {
+				return False;
+			}
+			break;
 		default:                      /* should never happen */
 			sprintf(msgbuf, "Internal error: Invalid security type: %d\n", secType);
 			wmsg(msgbuf, 1);
@@ -925,14 +965,20 @@ InitialiseRFBConnection(void)
 		si.framebufferHeight = 32;
 	}
 
-	/* FIXME: Check arguments to malloc() calls. */
+	/* Check arguments to malloc() calls. */
+	if (si.nameLength > 10000) {
+		fprintf(stderr, "name length too long: %lu bytes\n",
+		    (unsigned long)si.nameLength);
+		return False;
+		
+	}
 	desktopName = malloc(si.nameLength + 1);
-	memset(desktopName, 0, si.nameLength + 1);
 	if (!desktopName) {
 		fprintf(stderr, "Error allocating memory for desktop name, %lu bytes\n",
 		    (unsigned long)si.nameLength);
 		return False;
 	}
+	memset(desktopName, 0, si.nameLength + 1);
 
 	if (!ReadFromRFBServer(desktopName, si.nameLength)) {
 		return False;
@@ -1029,14 +1075,16 @@ static int
 SelectSecurityType(void)
 {
 	CARD8 nSecTypes;
-	char *secTypeNames[] = {"None", "VncAuth"};
-	CARD8 knownSecTypes[] = {rfbSecTypeNone, rfbSecTypeVncAuth};
+	CARD8 knownSecTypes[] = {rfbSecTypeNone, rfbSecTypeVncAuth, rfbSecTypeUltra};
 	int nKnownSecTypes = sizeof(knownSecTypes);
 	CARD8 *secTypes;
 	CARD8 secType = rfbSecTypeInvalid;
 	int i, j;
+	int have_none = 0;
+	int have_vncauth = 0;
+	int have_ultra = 0;
 
-	if (secTypeNames) {}
+	fprintf(stderr, "\nSelectSecurityType:\n");
 
 	/* Read the list of security types. */
 	if (!ReadFromRFBServer((char *)&nSecTypes, sizeof(nSecTypes))) {
@@ -1054,9 +1102,14 @@ SelectSecurityType(void)
 		return rfbSecTypeInvalid;
 	}
 
-	if (getenv("SSVNC_DEBUG_SEC_TYPES")) {
-		for (j = 0; j < (int)nSecTypes; j++) {
-			fprintf(stderr, "sec-type[%d] %d\n", j, (int) secTypes[j]);
+	for (j = 0; j < (int)nSecTypes; j++) {
+		fprintf(stderr, "  sec-type[%d]  %3d  (%s)\n", j, (int) secTypes[j], pr_sec_type(secTypes[j]));
+		if (rfbSecTypeNone == secTypes[j]) {
+			have_none = 1;
+		} else if (rfbSecTypeVncAuth == secTypes[j]) {
+			have_vncauth = 1;
+		} else if (rfbSecTypeUltra == secTypes[j]) {
+			have_ultra = 1;
 		}
 	}
 
@@ -1064,8 +1117,7 @@ SelectSecurityType(void)
 	for (j = 0; j < (int)nSecTypes; j++) {
 		if (getenv("VNCVIEWER_NO_SEC_TYPE_TIGHT")) {
 			break;
-		}
-		if (getenv("SSVNC_NO_SEC_TYPE_TIGHT")) {
+		} else if (getenv("SSVNC_NO_SEC_TYPE_TIGHT")) {
 			break;
 		}
 #ifdef TURBOVNC
@@ -1082,17 +1134,27 @@ SelectSecurityType(void)
 		}
 	}
 
-	/* Find first supported security type */
-	for (j = 0; j < (int)nSecTypes; j++) {
-		for (i = 0; i < nKnownSecTypes; i++) {
+	if (have_ultra) {
+		if(have_none || have_vncauth) {
+			knownSecTypes[0] = rfbSecTypeUltra; 
+			knownSecTypes[1] = rfbSecTypeNone; 
+			knownSecTypes[2] = rfbSecTypeVncAuth; 
+		} else {
+			fprintf(stderr, "Info: UltraVNC server not offering security types 'None' or 'VncAuth'.\n");
+		}
+	}
+
+	/* Find first supported security type in desired order */
+	for (i = 0; i < nKnownSecTypes; i++) {
+		for (j = 0; j < (int)nSecTypes; j++) {
 			if (secTypes[j] == knownSecTypes[i]) {
 				secType = secTypes[j];
 				if (!WriteExact(rfbsock, (char *)&secType, sizeof(secType))) {
-				  free(secTypes);
-				  return rfbSecTypeInvalid;
+					free(secTypes);
+					return rfbSecTypeInvalid;
 				}
 				break;
-				}
+			}
 		}
 		if (secType != rfbSecTypeInvalid) {
 			break;
@@ -1102,7 +1164,19 @@ SelectSecurityType(void)
 	if (secType == rfbSecTypeInvalid) {
 		fprintf(stderr, "Server did not offer supported security type:\n");
 		for (j = 0; j < (int)nSecTypes; j++) {
-			fprintf(stderr, "  sectype[%d] %d\n", j, (int) secTypes[j]);
+			int st = (int) secTypes[j];
+			fprintf(stderr, " sectype[%d] %d  (%s)\n", j, st, pr_sec_type(st));
+			if (st == rfbSecTypeAnonTls) {
+				fprintf(stderr, "  info: To connect to 'vino SSL/TLS' you must use the SSVNC GUI\n");
+				fprintf(stderr, "  info: or the ssvnc_cmd wrapper script with the correct cmdline arguments.\n");
+			} else if (st == rfbSecTypeVencrypt) {
+				fprintf(stderr, "  info: To connect to 'VeNCrypt SSL/TLS' you must use the SSVNC GUI\n");
+				fprintf(stderr, "  info: or the ssvnc_cmd wrapper script with the correct cmdline arguments.\n");
+			} else if (st == rfbSecTypeRA2) {
+				fprintf(stderr, "  info: RA2 is a proprietary protocol of RealVNC.\n");
+			} else if (st == rfbSecTypeRA2ne) {
+				fprintf(stderr, "  info: RA2ne is a proprietary protocol of RealVNC.\n");
+			}
 		}
 	}
 
@@ -1675,6 +1749,98 @@ AuthenticateVNC(void)
 	}
 
 	return True;
+}
+
+static Bool
+AuthenticateUltraVNC(void)
+{
+	CARD32 authCont;
+	CARD8 nSecTypes;
+
+	CARD8 knownSecTypes[] = {rfbSecTypeNone, rfbSecTypeVncAuth, rfbUltraVNC_MsLogonIIAuth};
+	int nKnownSecTypes = sizeof(knownSecTypes);
+	CARD8 *secTypes;
+	CARD8 secType = rfbSecTypeInvalid;
+	int i, j;
+
+	fprintf(stderr, "\nAuthenticateUltraVNC:\n");
+	if (!ReadFromRFBServer((char *)&authCont, 4)) {
+		return False;
+	}
+	authCont = Swap32IfLE(authCont);
+	fprintf(stderr, "UltraVNC authCont 0x%x\n", authCont);
+
+	if (authCont != rfbVncAuthContinue) {
+		sprintf(msgbuf, "Unknown UltraVNC authentication response: 0x%x\n\n", authCont);
+		wmsg(msgbuf, 1);
+		return False;
+	}
+
+	if (!ReadFromRFBServer((char *)&nSecTypes, sizeof(nSecTypes))) {
+		return False;
+	}
+
+	if (nSecTypes == 0) {
+		ReadConnFailedReason();
+		return False;
+	}
+
+	secTypes = malloc(nSecTypes);
+	if (!ReadFromRFBServer((char *)secTypes, nSecTypes)) {
+		return False;
+	}
+
+	for (j = 0; j < (int)nSecTypes; j++) {
+		fprintf(stderr, "  ultravnc-sub-sec-type[%d] %3d (%s)\n", j, (int) secTypes[j], pr_sec_type(secTypes[j]));
+	}
+
+	/* Find first supported security type in desired order */
+	for (i = 0; i < nKnownSecTypes; i++) {
+		for (j = 0; j < (int)nSecTypes; j++) {
+			if (secTypes[j] == knownSecTypes[i]) {
+				secType = secTypes[j];
+				if (!WriteExact(rfbsock, (char *)&secType, sizeof(secType))) {
+					free(secTypes);
+					return False;
+				}
+				break;
+			}
+		}
+		if (secType != rfbSecTypeInvalid) {
+			break;
+		}
+	}
+
+	free(secTypes);
+
+	if (secType == rfbSecTypeInvalid) {
+		return False;
+	} else if (secType == rfbSecTypeNone) {
+		CARD32 authResult;
+		fprintf(stderr, "No VNC authentication needed for UltraVNC server.\n");
+		/* must be RFB 3.8 or later here */
+
+		if (!ReadFromRFBServer((char *)&authResult, 4)) {
+			return False;
+		}
+
+		authResult = Swap32IfLE(authResult);
+
+		if (authResult == rfbVncAuthOK) {
+			fprintf(stderr, "VNC authentication succeeded (%d) for rfbSecTypeNone (RFB 3.8)\n", (int) authResult);
+		} else {
+			sprintf(msgbuf, "VNC authentication failed (%d) for rfbSecTypeNone (RFB 3.8)\n\n", (int) authResult);
+			wmsg(msgbuf, 1);
+			return False;
+		}
+		return True;
+	} else if (secType == rfbSecTypeVncAuth) {
+		return AuthenticateVNC();
+	} else if (secType == rfbUltraVNC_MsLogonIIAuth) {
+		return AuthUltraVncMsLogon();
+	}
+
+	return False;
 }
 
 /*
