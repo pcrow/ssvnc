@@ -38,7 +38,6 @@ Position desktopX, desktopY;
 static Dimension viewportWidth, viewportHeight;
 static Dimension scrollbarWidth, scrollbarHeight;
 
-
 int scale_round(int len, double fac);
 
 /*
@@ -195,6 +194,11 @@ static void net_wm_fullscreen(int to_fs) {
 
 time_t main_grab = 0;
 
+#ifndef XTGRABKBD
+#define XTGRABKBD 0
+#endif
+static int xtgrabkbd = XTGRABKBD;
+
 void fs_ungrab(int check) {
 	if (check) {
 		if (time(NULL) <= main_grab + 2) {
@@ -210,12 +214,27 @@ void fs_ungrab(int check) {
 		XUngrabServer(dpy);     
 	}
 	if (appData.grabKeyboard) {
-		fprintf(stderr, "calling XUngrabKeyboard(dpy)\n");
-		XtUngrabKeyboard(desktop, CurrentTime);
+		static int first = 1;
+		if (first) {
+			if (getenv("SSVNC_XTGRAB")) {
+				xtgrabkbd = 1;
+			} else if (getenv("SSVNC_NOXTGRAB")) {
+				xtgrabkbd = 0;
+			}
+		}
+		first = 0;
+		if (xtgrabkbd) {
+			fprintf(stderr, "calling XtUngrabKeyboard(dpy)\n");
+			XtUngrabKeyboard(desktop, CurrentTime);
+		} else {
+			fprintf(stderr, "calling XUngrabKeyboard(dpy)\n");
+			XUngrabKeyboard(dpy, CurrentTime);
+		}
 	}
 }
 
 void fs_grab(int check) {
+
 	if (check) {
 		if (time(NULL) <= main_grab + 2) {
 			return;
@@ -237,26 +256,73 @@ void fs_grab(int check) {
 	XRaiseWindow(dpy, XtWindow(toplevel)); \
 	XSync(dpy, False);
 
-	if (appData.grabKeyboard && XtGrabKeyboard(desktop, True, GrabModeAsync, GrabModeAsync, CurrentTime) != GrabSuccess) {
-		fprintf(stderr, "XtGrabKeyboard() failed.\n");
-		XSync(dpy, False);
-		usleep(100 * 1000);
-		FORCE_UP
-
-		if (XtGrabKeyboard(desktop, True, GrabModeAsync, GrabModeAsync, CurrentTime) != GrabSuccess) {
-			fprintf(stderr, "XtGrabKeyboard() failed again.\n");
-			usleep(200 * 1000);
-			XSync(dpy, False);
-			if (XtGrabKeyboard(desktop, True, GrabModeAsync, GrabModeAsync, CurrentTime) != GrabSuccess) {
-				fprintf(stderr, "XtGrabKeyboard() failed 3rd time.\n");
-			} else {
-				fprintf(stderr, "XtGrabKeyboard() OK 3rd try.\n");
+	if (appData.grabKeyboard) {
+		int gres = GrabSuccess;
+		static int first = 1;
+		if (first) {
+			if (getenv("SSVNC_XTGRAB")) {
+				xtgrabkbd = 1;
+			} else if (getenv("SSVNC_NOXTGRAB")) {
+				xtgrabkbd = 0;
 			}
-		} else {
-			fprintf(stderr, "XtGrabKeyboard() OK 2nd try.\n");
 		}
-		XRaiseWindow(dpy, XtWindow(toplevel));
-	} 
+		first = 0;
+		
+		if (xtgrabkbd) {
+			fprintf(stderr, "calling XtGrabKeyboard().\n");
+			gres = XtGrabKeyboard(desktop, True, GrabModeAsync, GrabModeAsync, CurrentTime);
+			if (gres != GrabSuccess) fprintf(stderr, "XtGrabKeyboard() failed.\n");
+		} else {
+			fprintf(stderr, "calling XGrabKeyboard().\n");
+			gres = XGrabKeyboard(dpy, XtWindow(toplevel), True, GrabModeAsync, GrabModeAsync, CurrentTime);
+			if (gres != GrabSuccess) fprintf(stderr, "XGrabKeyboard() failed.\n");
+		}
+
+		if (gres != GrabSuccess) {
+			XSync(dpy, False);
+			usleep(100 * 1000);
+			FORCE_UP
+
+			if (xtgrabkbd) {
+				fprintf(stderr, "calling XtGrabKeyboard() again.\n");
+				gres = XtGrabKeyboard(desktop, True, GrabModeAsync, GrabModeAsync, CurrentTime);
+				if (gres != GrabSuccess) fprintf(stderr, "XtGrabKeyboard() failed again.\n");
+			} else {
+				fprintf(stderr, "calling XGrabKeyboard() again.\n");
+				gres = XGrabKeyboard(dpy, XtWindow(toplevel), True, GrabModeAsync, GrabModeAsync, CurrentTime);
+				if (gres != GrabSuccess) fprintf(stderr, "XGrabKeyboard() failed again.\n");
+			}
+
+			if (gres != GrabSuccess) {
+				usleep(200 * 1000);
+				XSync(dpy, False);
+				if (xtgrabkbd) {
+					fprintf(stderr, "calling XtGrabKeyboard() 3rd time.\n");
+					gres = XtGrabKeyboard(desktop, True, GrabModeAsync, GrabModeAsync, CurrentTime);
+					if (gres != GrabSuccess) fprintf(stderr, "XtGrabKeyboard() failed 3rd time.\n");
+				} else {
+					fprintf(stderr, "calling XGrabKeyboard() 3rd time.\n");
+					gres = XGrabKeyboard(dpy, XtWindow(toplevel), True, GrabModeAsync, GrabModeAsync, CurrentTime);
+					if (gres != GrabSuccess) fprintf(stderr, "XGrabKeyboard() failed 3rd time.\n");
+				}
+
+				if (gres == GrabSuccess) {
+					if (xtgrabkbd) {
+						fprintf(stderr, "XtGrabKeyboard() OK 3rd try.\n");
+					} else {
+						fprintf(stderr, "XGrabKeyboard() OK 3rd try.\n");
+					}
+				}
+			} else {
+				if (xtgrabkbd) {
+					fprintf(stderr, "XtGrabKeyboard() OK 2nd try.\n");
+				} else {
+					fprintf(stderr, "XGrabKeyboard() OK 2nd try.\n");
+				}
+			}
+			XRaiseWindow(dpy, XtWindow(toplevel));
+		} 
+	}
 
 	if (appData.grabAll) {
 		fprintf(stderr, "calling XGrabServer(dpy)\n");
