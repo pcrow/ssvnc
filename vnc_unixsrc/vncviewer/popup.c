@@ -141,7 +141,6 @@ ShowScaleN(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
   if (appData.popupFix) {
 	popupFixer(scaleN);
-
   } else {
 	XtMoveWidget(scaleN, event->xbutton.x_root, event->xbutton.y_root);
   	XtPopup(scaleN, XtGrabNone);
@@ -319,7 +318,6 @@ ShowQuality(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
   if (appData.popupFix) {
 	popupFixer(qualityW);
-
   } else {
 	XtMoveWidget(qualityW, event->xbutton.x_root, event->xbutton.y_root);
   	XtPopup(qualityW, XtGrabNone);
@@ -376,7 +374,6 @@ ShowCompress(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
   if (appData.popupFix) {
 	popupFixer(compressW);
-
   } else {
 	XtMoveWidget(compressW, event->xbutton.x_root, event->xbutton.y_root);
   	XtPopup(compressW, XtGrabNone);
@@ -781,7 +778,8 @@ void AppendMsg(char *in) {
 	pos = XawTextGetInsertionPoint(msgtext);
 }
 
-static msg_visible = 0;
+static int msg_visible = 0;
+static int msg_NO_clicked = 0;
 
 void msg_dismiss_proc(Widget w, XtPointer client_data, XtPointer call_data) {
 	XtPopdown(msgwin);
@@ -790,12 +788,22 @@ void msg_dismiss_proc(Widget w, XtPointer client_data, XtPointer call_data) {
 	usleep(200 * 1000);
 }
 
-void CreateMsg(char *msg, int wait) {
+void msg_NO_proc(Widget w, XtPointer client_data, XtPointer call_data) {
+	XtPopdown(msgwin);
+	msg_visible = 0;
+	msg_NO_clicked = 1;
+	XSync(dpy, False);
+	usleep(200 * 1000);
+}
 
-	Widget myform, dismiss;
+int CreateMsg(char *msg, int wait) {
+
+	Widget myform, dismiss, reject;
 	char *p;
 	int i, n, run, wmax = 0;
+	int ret = 1;
 	Dimension w, h;
+
 
 	n = 0;
 	run = 0;
@@ -808,6 +816,11 @@ void CreateMsg(char *msg, int wait) {
 		run++;
 		if (run > wmax) wmax = run;
 		p++;
+	}
+	if (wmax > 80) {
+		if (wmax > 120) n++;
+		if (wmax > 80) n++;
+		wmax = 80;
 	}
 	h = (Dimension) (n+2) * 14;
 	w = (Dimension) (wmax+10) * 8;
@@ -823,12 +836,22 @@ void CreateMsg(char *msg, int wait) {
 	    XtNeditType, XawtextAppend, XtNtype, XawAsciiString,
 	    XtNuseStringInPlace, False, NULL);
 
-	dismiss = XtVaCreateManagedWidget("dismiss", commandWidgetClass, myform, XtNlabel, "OK", XtNfromVert, msgtext, NULL);
+	if (wait == 2) {
+		msg_NO_clicked = 0;
+
+		dismiss = XtVaCreateManagedWidget("dismiss", commandWidgetClass, myform, XtNlabel, "Accept", XtNfromVert, msgtext, NULL);
+		XtAddCallback(dismiss, XtNcallback, msg_dismiss_proc, NULL);
+
+		reject = XtVaCreateManagedWidget("reject", commandWidgetClass, myform, XtNlabel, "Reject", XtNfromVert, dismiss, NULL);
+		XtAddCallback(reject, XtNcallback, msg_NO_proc, NULL);
+	} else {
+		dismiss = XtVaCreateManagedWidget("dismiss", commandWidgetClass, myform, XtNlabel, "OK", XtNfromVert, msgtext, NULL);
+		XtAddCallback(dismiss, XtNcallback, msg_dismiss_proc, NULL);
+		
+	}
 
 	AppendMsg("");
 	AppendMsg(msg);
-
-	XtAddCallback(dismiss, XtNcallback, msg_dismiss_proc, NULL);
 
 	XtRealizeWidget(msgwin);
 
@@ -840,4 +863,12 @@ void CreateMsg(char *msg, int wait) {
 		if (0) fprintf(stderr, "mv: %d\n", msg_visible);
 		XtAppProcessEvent(appContext, XtIMAll);
 	}
+	if (wait == 2) {
+		if (msg_NO_clicked) {
+			ret = 0;
+		} else {
+			ret = 1;
+		}
+	}
+	return ret;
 }

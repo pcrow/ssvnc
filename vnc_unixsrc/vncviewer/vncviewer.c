@@ -30,6 +30,8 @@ Display* dpy;
 
 Widget toplevel;
 
+extern void raiseme(int force);
+
 void set_sbwidth(int sbw) {
 	char *q, *p, t[5];
 	int i, k, N = 4;
@@ -105,15 +107,18 @@ void unixpw(char *instr, int vencrypt_plain) {
 	}
 	if (!strcmp(str, ".")) {
 		char *p;
-		fprintf(stderr, "\nUnix Username: ");
-		if (!isatty(0)) {
-			char *u = DoUserDialog();
+		if (!use_tty()) {
+			char *u;
+			fprintf(stderr, "\nEnter Unix Username and Password in the popups.\n");
+			u = DoUserDialog();
 			if (strlen(u) >= 100) {
 				exit(1);
 			}
 			sprintf(username, u);
 			p = DoPasswordDialog();
 		} else {
+			raiseme(1);
+			fprintf(stderr, "\nUnix Username: ");
 			if (fgets(username, N, stdin) == NULL) {
 				exit(1);
 			}
@@ -127,9 +132,11 @@ void unixpw(char *instr, int vencrypt_plain) {
 		
 	} else if (!strcmp(str, "-")) {
 		char *p, *q;
-		if (!isatty(0)) {
+		if (!use_tty()) {
+			fprintf(stderr, "\nEnter unixuser@unixpasswd in the popup.\n");
 			p = DoPasswordDialog();
 		} else {
+			raiseme(1);
 			p = getpass("unixuser@unixpasswd: ");
 		}
 		if (! p) {
@@ -276,6 +283,14 @@ main(int argc, char **argv)
 	}
 
 	for (i = 1; i < argc; i++) {
+		if (strcmp(argv[i], "-acceptpopup") == 0) {
+			putenv("SSVNC_ACCEPT_POPUP=1");
+			continue;
+		}
+		if (strcmp(argv[i], "-acceptpopupsc") == 0) {
+			putenv("SSVNC_ACCEPT_POPUP_SC=1");
+			continue;
+		}
 		if (strcmp(argv[i], "-listen") == 0) {
 			listenForIncomingConnections(&argc, argv, i);
 			break;
@@ -718,6 +733,7 @@ ToggleJPEG(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 
 static Bool usingZRLE = False;
 static Bool usingZYWRLE = False;
+static Bool usingHextile = False;
 extern int skip_maybe_sync;
 
 void
@@ -726,6 +742,7 @@ ToggleTightZRLE(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	char prefTight[] = "copyrect tight zrle zywrle zlib hextile corre rre raw";
 	char prefZRLE[]  = "copyrect zrle zywrle tight zlib hextile corre rre raw";
 	init_format_change();
+	usingHextile = False;
 	if (! appData.encodingsString) {
 		appDataNew.encodingsString = strdup(prefZRLE);
 		usingZRLE = True;
@@ -774,6 +791,7 @@ ToggleZRLEZYWRLE(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	char prefZRLE[]   = "copyrect zrle zywrle tight zlib hextile corre rre raw";
 	init_format_change();
 	usingZRLE = True;
+	usingHextile = False;
 	if (! appData.encodingsString) {
 		appDataNew.encodingsString = strdup(prefZYWRLE);
 		usingZYWRLE = True;
@@ -796,6 +814,52 @@ ToggleZRLEZYWRLE(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	schedule_format_change();
 }
 
+void
+ToggleTightHextile(Widget w, XEvent *ev, String *params, Cardinal *num_params)
+{
+	char prefTight[]   = "copyrect tight zrle zywrle zlib hextile corre rre raw";
+	char prefHextile[] = "copyrect hextile tight zrle zywrle zlib corre rre raw";
+	init_format_change();
+	usingZRLE = False;
+	usingZYWRLE = False;
+	if (! appData.encodingsString) {
+		appDataNew.encodingsString = strdup(prefHextile);
+		usingHextile = True;
+		fprintf(stderr, "prefer: Hextile\n");
+	} else {
+		char *t, *z;
+		static int first = 1;
+		t = strstr(appData.encodingsString, "tight");
+		z = strstr(appData.encodingsString, "hextile");
+		if (first && usingHextile) {
+			appDataNew.encodingsString = strdup(prefTight);
+			usingHextile = False;
+		} else if (! t) {
+			appDataNew.encodingsString = strdup(prefHextile);
+			usingHextile = True;
+			fprintf(stderr, "prefer: Hextile\n");
+		} else if (! z) {
+			appDataNew.encodingsString = strdup(prefTight);
+			usingHextile = False;
+			skip_maybe_sync = 0;
+			fprintf(stderr, "prefer: Tight\n");
+		} else {
+			if (t < z) {
+				appDataNew.encodingsString = strdup(prefHextile);
+				usingHextile = True;
+				fprintf(stderr, "prefer: Hextile\n");
+			} else {
+				appDataNew.encodingsString = strdup(prefTight);
+				usingHextile = False;
+				skip_maybe_sync = 0;
+				fprintf(stderr, "prefer: Tight\n");
+			}
+		}
+		first = 0;
+	}
+	schedule_format_change();
+}
+
 void scale_check_zrle(void) {
 	static int didit = 0;
 	if (didit) {
@@ -805,7 +869,7 @@ void scale_check_zrle(void) {
 	if (getenv("SSVNC_PRESERVE_ENCODING")) {
 		return;
 	}
-	if (!usingZRLE) {
+	if (!usingZRLE && !usingHextile) {
 		Widget w;
 		fprintf(stderr, "\nSwitching to faster ZRLE encoding in client-side scaling mode.\n");
 		fprintf(stderr, "Switch back to Tight via the Popup menu if you prefer it.\n\n");
@@ -1668,76 +1732,58 @@ SetGreyScaleState(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	}
 }
 
-void
-SetZRLEState(Widget w, XEvent *ev, String *params, Cardinal *num_params)
-{
+static init_state(void) {
 	static int first = 1;
 	if (first && appData.encodingsString) {
-		char *t, *z, *w;
-		t = strstr(appData.encodingsString, "tight");
-		z = strstr(appData.encodingsString, "zrle");
-		w = strstr(appData.encodingsString, "zywrle");
-		if (t) {
-			if (z) {
-				if (w) {
-					if (t < z && t < w) {
-						usingZRLE = False;
-					} else {
-						usingZRLE = True;
-					}
-					if (z < w) {
-						usingZYWRLE = False;
-					} else {
-						usingZYWRLE = True;
-					}
-				} else {
-					if (t < z) {
-						usingZRLE = False;
-					} else {
-						usingZRLE = True;
-					}
-					usingZYWRLE = False;
-				}
-			} else {
-				if (w) {
-					if (t < w) {
-						usingZRLE = False;
-					} else {
-						usingZRLE = True;
-					}
-					usingZYWRLE = True;
-				} else {
-					usingZRLE = False;
-					usingZYWRLE = False;
-				}
-			}
-		} else {
-			if (z) {
-				if (w) {
-					usingZRLE = True;
-					if (z < w) {
-						usingZYWRLE = False;
-					} else {
-						usingZYWRLE = True;
-					}
-				} else {
-					usingZRLE = True;
-					usingZYWRLE = False;
-				}
-			} else {
-				if (w) {
-					usingZRLE = True;
-					usingZYWRLE = True;
-				} else {
-					usingZRLE = False;
-					usingZYWRLE = False;
-				}
-			}
+		char *t, *z, *y, *h;
+		char *str = appData.encodingsString;
+		int len = strlen(str);
+
+		t = strstr(str, "tight");
+		z = strstr(str, "zrle");
+		y = strstr(str, "zywrle");
+		h = strstr(str, "hextile");
+
+		if (!t) t = str + len;
+		if (!z) z = str + len;
+		if (!y) y = str + len;
+		if (!h) h = str + len;
+
+		usingZRLE = False;
+		usingZYWRLE = False;
+		usingHextile = False;
+
+		if (t < z && t < y && t < h) {
+			;
+		} else if (z < t && z < y && z < h) {
+			usingZRLE = True;
+		} else if (y < t && y < z && y < h) {
+			usingZYWRLE = True;
+			usingZRLE = True;
+		} else if (h < t && h < z && h < y) {
+			usingHextile = True;
 		}
 	}
 	first = 0;
 
+}
+
+void
+SetZRLEState(Widget w, XEvent *ev, String *params, Cardinal *num_params)
+{
+	init_state();
 	if (usingZRLE) {
+		XtVaSetValues(w, XtNstate, True, NULL);
+	} else {
+		XtVaSetValues(w, XtNstate, False, NULL);
+	}
+}
+
+void
+SetHextileState(Widget w, XEvent *ev, String *params, Cardinal *num_params)
+{
+	init_state();
+	if (usingHextile) {
 		XtVaSetValues(w, XtNstate, True, NULL);
 	} else {
 		XtVaSetValues(w, XtNstate, False, NULL);
@@ -1747,6 +1793,7 @@ SetZRLEState(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 void
 SetZYWRLEState(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 {
+	init_state();
 	if (usingZYWRLE) {
 		XtVaSetValues(w, XtNstate, True, NULL);
 	} else {

@@ -33,6 +33,11 @@
 #include <assert.h>
 #include <vncviewer.h>
 
+/* Solaris (sysv?) needs INADDR_NONE */
+#ifndef INADDR_NONE
+#define INADDR_NONE ((in_addr_t) 0xffffffff)
+#endif
+
 void PrintInHex(char *buf, int len);
 
 Bool errorMessageOnReadFailure = True;
@@ -811,6 +816,42 @@ StringToIPAddr(const char *str, unsigned int *addr)
   }
 
   return False;
+}
+
+char *get_peer_ip(int sock) {
+	struct sockaddr_in saddr;
+	unsigned int saddr_len;
+	int saddr_port;
+	char *saddr_ip_str = NULL;
+
+	saddr_len = sizeof(saddr);
+	memset(&saddr, 0, sizeof(saddr));
+	saddr_port = -1;
+	if (!getpeername(sock, (struct sockaddr *)&saddr, &saddr_len)) {
+		saddr_ip_str = inet_ntoa(saddr.sin_addr);
+	}
+	if (! saddr_ip_str) {
+		saddr_ip_str = "unknown";
+	}
+	return strdup(saddr_ip_str);
+}
+
+char *ip2host(char *ip) {
+	char *str;
+	struct hostent *hp;
+	in_addr_t iaddr;
+
+	iaddr = inet_addr(ip);
+	if (iaddr == htonl(INADDR_NONE)) {
+		return strdup("unknown");
+	}
+
+	hp = gethostbyaddr((char *)&iaddr, sizeof(in_addr_t), AF_INET);
+	if (!hp) {
+		return strdup("unknown");
+	}
+	str = strdup(hp->h_name);
+	return str;
 }
 
 

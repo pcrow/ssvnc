@@ -8,7 +8,7 @@
 # Set ROOT to a staging area directory for an install that thinks
 # it is installed in $(PREFIX) but is really in $(ROOT)$(PREFIX).
 #
-# Set MANDIR to, say, share/man/man1 to install the manpages in a
+# Set MANDIR to, say, share/man to install the manpages in a
 # different place.
 #
 # BINNAME will be the name of the viewer binary installed in bin,
@@ -25,7 +25,7 @@ PREFIX  ?= /usr/local
 ROOT    ?=
 BIN      = bin
 LIB      = lib/ssvnc
-MAN      = man/man1
+MAN      = man
 MANDIR  ?= $(MAN)
 APPS    ?= share/applications
 BINNAME ?= ssvncviewer
@@ -65,7 +65,7 @@ clean:
 	cd $(PSRC); $(MAKE) clean
 
 install: all
-	mkdir -p $(ROOT)$(PREFIX)/$(BIN) $(ROOT)$(PREFIX)/$(LIB) $(ROOT)$(PREFIX)/$(MANDIR)
+	mkdir -p $(ROOT)$(PREFIX)/$(BIN) $(ROOT)$(PREFIX)/$(LIB) $(ROOT)$(PREFIX)/$(MANDIR)/man1
 	strip $(VIEWER)
 	cp -p $(VIEWER) $(ROOT)$(PREFIX)/$(LIB)
 	cp -p $(VNCSPW) $(ROOT)$(PREFIX)/$(LIB)
@@ -74,14 +74,14 @@ install: all
 	cp -p $(ULTDSM) $(ROOT)$(PREFIX)/$(LIB)
 	cp -pR scripts/* $(ROOT)$(PREFIX)/$(LIB)
 	cp -p $(ARCHIVE) $(ROOT)$(PREFIX)/$(LIB)/util
-	cp -p $(MAN)/ssvnc.1 $(ROOT)$(PREFIX)/$(MANDIR)
+	cp -p $(MAN)/man1/ssvnc.1 $(ROOT)$(PREFIX)/$(MANDIR)/man1
 	./wr_tool $(ROOT)$(PREFIX)/$(BIN)/ssvnc  $(PREFIX)/$(LIB)/ssvnc
 	./wr_tool $(ROOT)$(PREFIX)/$(BIN)/tsvnc  $(PREFIX)/$(LIB)/tsvnc
 	./wr_tool $(ROOT)$(PREFIX)/$(BIN)/sshvnc $(PREFIX)/$(LIB)/sshvnc
 	if [ "X$(APPS)" != X ]; then mkdir -p $(ROOT)$(PREFIX)/$(APPS); fi
 	if [ "X$(APPS)" != X ]; then cp -p ssvnc.desktop $(ROOT)$(PREFIX)/$(APPS); fi
 	if [ "X$(BINNAME)" != X ]; then cp -p $(VIEWER) $(ROOT)$(PREFIX)/$(BIN)/$(BINNAME); fi
-	if [ "X$(BINNAME)" != X ]; then cp -p $(MAN)/ssvncviewer.1 $(ROOT)$(PREFIX)/$(MANDIR)/$(BINNAME).1; fi
+	if [ "X$(BINNAME)" != X ]; then cp -p $(MAN)/man1/ssvncviewer.1 $(ROOT)$(PREFIX)/$(MANDIR)/man1/$(BINNAME).1; fi
 
 
 #internal use only, a test install:

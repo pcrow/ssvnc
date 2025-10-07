@@ -37,6 +37,15 @@ static Bool compressDialogDone = False;
 
 extern void popupFixer(Widget wid);
 
+int use_tty(void) {
+	if (appData.notty) {
+		return 0;
+	} else if (!isatty(0)) {
+		return 0;
+	}
+	return 1;
+}
+
 void
 ScaleDialogDone(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
@@ -92,6 +101,10 @@ static void wm_delete(Widget w, char *func) {
 	}
 }
 
+static void xtmove(Widget w) {
+	XtMoveWidget(w, WidthOfScreen(XtScreen(w))*2/5, HeightOfScreen(XtScreen(w))*2/5);
+}
+
 char *
 DoScaleDialog()
 {
@@ -105,8 +118,7 @@ DoScaleDialog()
 
 	dialog_over(pshell);
 
-	XtMoveWidget(pshell, WidthOfScreen(XtScreen(pshell))*2/5,
-	       HeightOfScreen(XtScreen(pshell))*2/5);
+	if (0) XtMoveWidget(pshell, WidthOfScreen(XtScreen(pshell))*2/5, HeightOfScreen(XtScreen(pshell))*2/5);
 	XtPopup(pshell, XtGrabNonexclusive);
 	XtRealizeWidget(pshell);
 
@@ -121,8 +133,10 @@ DoScaleDialog()
 	}
 
 
-	if (appData.popupFix) {
+	if (1 && appData.popupFix) {
 		popupFixer(pshell);
+	} else {
+		xtmove(pshell);
 	}
 	dialog_input(pshell);
 	wm_delete(pshell, "ScaleDialogDone()");
@@ -155,8 +169,7 @@ DoEscapeKeysDialog()
 
 	dialog_over(pshell);
 
-	XtMoveWidget(pshell, WidthOfScreen(XtScreen(pshell))*2/5,
-	       HeightOfScreen(XtScreen(pshell))*2/5);
+	if(0) XtMoveWidget(pshell, WidthOfScreen(XtScreen(pshell))*2/5, HeightOfScreen(XtScreen(pshell))*2/5);
 	XtPopup(pshell, XtGrabNonexclusive);
 	XtRealizeWidget(pshell);
 
@@ -172,6 +185,9 @@ DoEscapeKeysDialog()
 
 	if (appData.popupFix) {
 		popupFixer(pshell);
+	} else {
+		/* too big */
+		if (0) xtmove(pshell);
 	}
 	dialog_input(pshell);
 	wm_delete(pshell, "EscapeDialogDone()");
@@ -199,172 +215,176 @@ YCropDialogDone(Widget w, XEvent *event, String *params, Cardinal *num_params)
 char *
 DoYCropDialog()
 {
-  Widget pshell, dialog;
-  char *ycropValue;
-  char *valueString;
+	Widget pshell, dialog;
+	char *ycropValue;
+	char *valueString;
 
-  pshell = XtVaCreatePopupShell("ycropDialog", transientShellWidgetClass,
+	pshell = XtVaCreatePopupShell("ycropDialog", transientShellWidgetClass,
 				toplevel, NULL);
-  dialog = XtVaCreateManagedWidget("dialog", dialogWidgetClass, pshell, NULL);
+	dialog = XtVaCreateManagedWidget("dialog", dialogWidgetClass, pshell, NULL);
 
 	dialog_over(pshell);
 
-  XtMoveWidget(pshell, WidthOfScreen(XtScreen(pshell))*2/5,
-	       HeightOfScreen(XtScreen(pshell))*2/5);
-  XtPopup(pshell, XtGrabNonexclusive);
-  XtRealizeWidget(pshell);
+	if(0) XtMoveWidget(pshell, WidthOfScreen(XtScreen(pshell))*2/5, HeightOfScreen(XtScreen(pshell))*2/5);
+	XtPopup(pshell, XtGrabNonexclusive);
+	XtRealizeWidget(pshell);
 
-  if (appData.popupFix) {
-	popupFixer(pshell);
-  }
+	if (1 && appData.popupFix) {
+		popupFixer(pshell);
+	} else {
+		xtmove(pshell);
+	}
 	dialog_input(pshell);
 	wm_delete(pshell, "YCropDialogDone()");
 
-  ycropDialogDone = False;
+	ycropDialogDone = False;
 
-  while (!ycropDialogDone) {
-    XtAppProcessEvent(appContext, XtIMAll);
-  }
+	while (!ycropDialogDone) {
+		XtAppProcessEvent(appContext, XtIMAll);
+	}
 
-  valueString = XawDialogGetValueString(dialog);
+	valueString = XawDialogGetValueString(dialog);
 	rmNL(valueString);
-  ycropValue = XtNewString(valueString);
+	ycropValue = XtNewString(valueString);
 
-  XtPopdown(pshell);
-  return ycropValue;
+	XtPopdown(pshell);
+	return ycropValue;
 }
 
 void
 ScbarDialogDone(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
-  scbarDialogDone = True;
+	scbarDialogDone = True;
 }
 
 char *
 DoScbarDialog()
 {
-  Widget pshell, dialog;
-  char *scbarValue;
-  char *valueString;
+	Widget pshell, dialog;
+	char *scbarValue;
+	char *valueString;
 
-  pshell = XtVaCreatePopupShell("scbarDialog", transientShellWidgetClass,
+	pshell = XtVaCreatePopupShell("scbarDialog", transientShellWidgetClass,
 				toplevel, NULL);
-  dialog = XtVaCreateManagedWidget("dialog", dialogWidgetClass, pshell, NULL);
+	dialog = XtVaCreateManagedWidget("dialog", dialogWidgetClass, pshell, NULL);
 
 	dialog_over(pshell);
 
-  XtMoveWidget(pshell, WidthOfScreen(XtScreen(pshell))*2/5,
-	       HeightOfScreen(XtScreen(pshell))*2/5);
-  XtPopup(pshell, XtGrabNonexclusive);
-  XtRealizeWidget(pshell);
+	if(0) XtMoveWidget(pshell, WidthOfScreen(XtScreen(pshell))*2/5, HeightOfScreen(XtScreen(pshell))*2/5);
+	XtPopup(pshell, XtGrabNonexclusive);
+	XtRealizeWidget(pshell);
 
-  if (appData.popupFix) {
-	popupFixer(pshell);
-  }
+	if (1 && appData.popupFix) {
+		popupFixer(pshell);
+	} else {
+		xtmove(pshell);
+	}
 	dialog_input(pshell);
 	wm_delete(pshell, "ScbarDialogDone()");
 
-  scbarDialogDone = False;
+	scbarDialogDone = False;
 
-  while (!scbarDialogDone) {
-    XtAppProcessEvent(appContext, XtIMAll);
-  }
+	while (!scbarDialogDone) {
+		XtAppProcessEvent(appContext, XtIMAll);
+	}
 
-  valueString = XawDialogGetValueString(dialog);
+	valueString = XawDialogGetValueString(dialog);
 	rmNL(valueString);
-  scbarValue = XtNewString(valueString);
+	scbarValue = XtNewString(valueString);
 
-  XtPopdown(pshell);
-  return scbarValue;
+	XtPopdown(pshell);
+	return scbarValue;
 }
 
 void
 ScaleNDialogDone(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
-  scaleNDialogDone = True;
+	scaleNDialogDone = True;
 }
 
 char *
 DoScaleNDialog()
 {
-  Widget pshell, dialog;
-  char *scaleNValue;
-  char *valueString;
+	Widget pshell, dialog;
+	char *scaleNValue;
+	char *valueString;
 
-  pshell = XtVaCreatePopupShell("scaleNDialog", transientShellWidgetClass,
+	pshell = XtVaCreatePopupShell("scaleNDialog", transientShellWidgetClass,
 				toplevel, NULL);
-  dialog = XtVaCreateManagedWidget("dialog", dialogWidgetClass, pshell, NULL);
+	dialog = XtVaCreateManagedWidget("dialog", dialogWidgetClass, pshell, NULL);
 
 	dialog_over(pshell);
 	wm_delete(pshell, "ScaleNDialogDone()");
 
-  XtMoveWidget(pshell, WidthOfScreen(XtScreen(pshell))*2/5,
-	       HeightOfScreen(XtScreen(pshell))*2/5);
-  XtPopup(pshell, XtGrabNonexclusive);
-  XtRealizeWidget(pshell);
+	if(0) XtMoveWidget(pshell, WidthOfScreen(XtScreen(pshell))*2/5, HeightOfScreen(XtScreen(pshell))*2/5);
+	XtPopup(pshell, XtGrabNonexclusive);
+	XtRealizeWidget(pshell);
 
-  if (appData.popupFix) {
-	popupFixer(pshell);
-  }
+	if (appData.popupFix) {
+		popupFixer(pshell);
+	} else {
+		xtmove(pshell);
+	}
 	dialog_input(pshell);
 	wm_delete(pshell, "ScaleNDialogDone()");
 
-  scaleNDialogDone = False;
+	scaleNDialogDone = False;
 
-  while (!scaleNDialogDone) {
-    XtAppProcessEvent(appContext, XtIMAll);
-  }
+	while (!scaleNDialogDone) {
+		XtAppProcessEvent(appContext, XtIMAll);
+	}
 
-  valueString = XawDialogGetValueString(dialog);
+	valueString = XawDialogGetValueString(dialog);
 	rmNL(valueString);
-  scaleNValue = XtNewString(valueString);
+	scaleNValue = XtNewString(valueString);
 
-  XtPopdown(pshell);
-  return scaleNValue;
+	XtPopdown(pshell);
+	return scaleNValue;
 }
 
 void
 QualityDialogDone(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
-  qualityDialogDone = True;
+	qualityDialogDone = True;
 }
 
 char *
 DoQualityDialog()
 {
-  Widget pshell, dialog;
-  char *qualityValue;
-  char *valueString;
+	Widget pshell, dialog;
+	char *qualityValue;
+	char *valueString;
 
-  pshell = XtVaCreatePopupShell("qualityDialog", transientShellWidgetClass,
+	pshell = XtVaCreatePopupShell("qualityDialog", transientShellWidgetClass,
 				toplevel, NULL);
-  dialog = XtVaCreateManagedWidget("dialog", dialogWidgetClass, pshell, NULL);
+	dialog = XtVaCreateManagedWidget("dialog", dialogWidgetClass, pshell, NULL);
 
 	dialog_over(pshell);
 
-  XtMoveWidget(pshell, WidthOfScreen(XtScreen(pshell))*2/5,
-	       HeightOfScreen(XtScreen(pshell))*2/5);
-  XtPopup(pshell, XtGrabNonexclusive);
-  XtRealizeWidget(pshell);
+	if(0) XtMoveWidget(pshell, WidthOfScreen(XtScreen(pshell))*2/5, HeightOfScreen(XtScreen(pshell))*2/5);
+	XtPopup(pshell, XtGrabNonexclusive);
+	XtRealizeWidget(pshell);
 
-  if (appData.popupFix) {
-	popupFixer(pshell);
-  }
+	if (1 && appData.popupFix) {
+		popupFixer(pshell);
+	} else {
+		xtmove(pshell);
+	}
 	dialog_input(pshell);
 	wm_delete(pshell, "QualityDialogDone() HideQuality()");
 
-  qualityDialogDone = False;
+	qualityDialogDone = False;
 
-  while (!qualityDialogDone) {
-    XtAppProcessEvent(appContext, XtIMAll);
-  }
+	while (!qualityDialogDone) {
+		XtAppProcessEvent(appContext, XtIMAll);
+	}
 
-  valueString = XawDialogGetValueString(dialog);
+	valueString = XawDialogGetValueString(dialog);
 	rmNL(valueString);
-  qualityValue = XtNewString(valueString);
+	qualityValue = XtNewString(valueString);
 
-  XtPopdown(pshell);
-  return qualityValue;
+	XtPopdown(pshell);
+	return qualityValue;
 }
 
 void
@@ -376,174 +396,178 @@ CompressDialogDone(Widget w, XEvent *event, String *params, Cardinal *num_params
 char *
 DoCompressDialog()
 {
-  Widget pshell, dialog;
-  char *compressValue;
-  char *valueString;
+	Widget pshell, dialog;
+	char *compressValue;
+	char *valueString;
 
-fprintf(stderr, "compress start:\n");
+	fprintf(stderr, "compress start:\n");
 
-  pshell = XtVaCreatePopupShell("compressDialog", transientShellWidgetClass,
+	pshell = XtVaCreatePopupShell("compressDialog", transientShellWidgetClass,
 				toplevel, NULL);
-  dialog = XtVaCreateManagedWidget("dialog", dialogWidgetClass, pshell, NULL);
+	dialog = XtVaCreateManagedWidget("dialog", dialogWidgetClass, pshell, NULL);
 
 	dialog_over(pshell);
 
-  XtMoveWidget(pshell, WidthOfScreen(XtScreen(pshell))*2/5,
-	       HeightOfScreen(XtScreen(pshell))*2/5);
-  XtPopup(pshell, XtGrabNonexclusive);
-  XtRealizeWidget(pshell);
+	if(0) XtMoveWidget(pshell, WidthOfScreen(XtScreen(pshell))*2/5, HeightOfScreen(XtScreen(pshell))*2/5);
+	XtPopup(pshell, XtGrabNonexclusive);
+	XtRealizeWidget(pshell);
 
-  if (appData.popupFix) {
-	popupFixer(pshell);
-  }
+	if (1 && appData.popupFix) {
+		popupFixer(pshell);
+	} else {
+		xtmove(pshell);
+	}
 	dialog_input(pshell);
 	wm_delete(pshell, "CompressDialogDone() HideCompress()");
 
-  compressDialogDone = False;
+	compressDialogDone = False;
 
-  while (!compressDialogDone) {
-    XtAppProcessEvent(appContext, XtIMAll);
-  }
+	while (!compressDialogDone) {
+		XtAppProcessEvent(appContext, XtIMAll);
+	}
 
-  valueString = XawDialogGetValueString(dialog);
+	valueString = XawDialogGetValueString(dialog);
 	rmNL(valueString);
-  compressValue = XtNewString(valueString);
+	compressValue = XtNewString(valueString);
 
-fprintf(stderr, "compress done: %s\n", compressValue);
+	fprintf(stderr, "compress done: %s\n", compressValue);
 
-  XtPopdown(pshell);
-  return compressValue;
+	XtPopdown(pshell);
+	return compressValue;
 }
 
 void
 ServerDialogDone(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
-  serverDialogDone = True;
+	serverDialogDone = True;
 }
 
 char *
 DoServerDialog()
 {
-  Widget pshell, dialog;
-  char *vncServerName;
-  char *valueString;
+	Widget pshell, dialog;
+	char *vncServerName;
+	char *valueString;
 
-  pshell = XtVaCreatePopupShell("serverDialog", transientShellWidgetClass,
+	pshell = XtVaCreatePopupShell("serverDialog", transientShellWidgetClass,
 				toplevel, NULL);
-  dialog = XtVaCreateManagedWidget("dialog", dialogWidgetClass, pshell, NULL);
+	dialog = XtVaCreateManagedWidget("dialog", dialogWidgetClass, pshell, NULL);
 
 	dialog_over(pshell);
 
-  XtMoveWidget(pshell, WidthOfScreen(XtScreen(pshell))*2/5,
-	       HeightOfScreen(XtScreen(pshell))*2/5);
-  XtPopup(pshell, XtGrabNonexclusive);
-  XtRealizeWidget(pshell);
+	if (0) XtMoveWidget(pshell, WidthOfScreen(XtScreen(pshell))*2/5, HeightOfScreen(XtScreen(pshell))*2/5);
+	XtPopup(pshell, XtGrabNonexclusive);
+	XtRealizeWidget(pshell);
 
-  if (appData.popupFix) {
-	popupFixer(pshell);
-  }
+	if (0 && appData.popupFix) {
+		popupFixer(pshell);
+	} else {
+		xtmove(pshell);
+	}
 	//dialog_input(pshell);
 	wm_delete(pshell, "ServerDialogDone()");
 
-  serverDialogDone = False;
+	serverDialogDone = False;
 
-  while (!serverDialogDone) {
-    XtAppProcessEvent(appContext, XtIMAll);
-  }
+	while (!serverDialogDone) {
+		XtAppProcessEvent(appContext, XtIMAll);
+	}
 
-  valueString = XawDialogGetValueString(dialog);
+	valueString = XawDialogGetValueString(dialog);
 	rmNL(valueString);
-  vncServerName = XtNewString(valueString);
+	vncServerName = XtNewString(valueString);
 
-  XtPopdown(pshell);
-  return vncServerName;
+	XtPopdown(pshell);
+	return vncServerName;
 }
 
 void
 UserDialogDone(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
-  userDialogDone = True;
+	userDialogDone = True;
 }
 
 char *
 DoUserDialog()
 {
-  Widget pshell, dialog;
-  char *userName;
-  char *valueString;
+	Widget pshell, dialog;
+	char *userName;
+	char *valueString;
 
-  pshell = XtVaCreatePopupShell("userDialog", transientShellWidgetClass,
+	pshell = XtVaCreatePopupShell("userDialog", transientShellWidgetClass,
 				toplevel, NULL);
-  dialog = XtVaCreateManagedWidget("dialog", dialogWidgetClass, pshell, NULL);
+	dialog = XtVaCreateManagedWidget("dialog", dialogWidgetClass, pshell, NULL);
 
 	dialog_over(pshell);
 
-  XtMoveWidget(pshell, WidthOfScreen(XtScreen(pshell))*2/5,
-	       HeightOfScreen(XtScreen(pshell))*2/5);
-  XtPopup(pshell, XtGrabNonexclusive);
-  XtRealizeWidget(pshell);
+	if(0) XtMoveWidget(pshell, WidthOfScreen(XtScreen(pshell))*2/5, HeightOfScreen(XtScreen(pshell))*2/5);
+	XtPopup(pshell, XtGrabNonexclusive);
+	XtRealizeWidget(pshell);
 
-  if (appData.popupFix) {
-	popupFixer(pshell);
-  }
+	if (0 && appData.popupFix) {
+		popupFixer(pshell);
+	} else {
+		xtmove(pshell);
+	}
 	//dialog_input(pshell);
 	wm_delete(pshell, "UserDialogDone()");
 
-  userDialogDone = False;
+	userDialogDone = False;
 
-  while (!userDialogDone) {
-    XtAppProcessEvent(appContext, XtIMAll);
-  }
+	while (!userDialogDone) {
+		XtAppProcessEvent(appContext, XtIMAll);
+	}
 
-  valueString = XawDialogGetValueString(dialog);
+	valueString = XawDialogGetValueString(dialog);
 	rmNL(valueString);
-  userName = XtNewString(valueString);
+	userName = XtNewString(valueString);
 
-  XtPopdown(pshell);
-  return userName;
+	XtPopdown(pshell);
+	return userName;
 }
 
 void
 PasswordDialogDone(Widget w, XEvent *event, String *params,
 		   Cardinal *num_params)
 {
-  passwordDialogDone = True;
+	passwordDialogDone = True;
 }
 
 char *
 DoPasswordDialog()
 {
-  Widget pshell, dialog;
-  char *password;
-  char *valueString;
+	Widget pshell, dialog;
+	char *password;
+	char *valueString;
 
-  pshell = XtVaCreatePopupShell("passwordDialog", transientShellWidgetClass,
+	pshell = XtVaCreatePopupShell("passwordDialog", transientShellWidgetClass,
 				toplevel, NULL);
-  dialog = XtVaCreateManagedWidget("dialog", dialogWidgetClass, pshell, NULL);
+	dialog = XtVaCreateManagedWidget("dialog", dialogWidgetClass, pshell, NULL);
 
 	dialog_over(pshell);
 
-  XtMoveWidget(pshell, WidthOfScreen(XtScreen(pshell))*2/5,
-	       HeightOfScreen(XtScreen(pshell))*2/5);
-  XtPopup(pshell, XtGrabNonexclusive);
-  XtRealizeWidget(pshell);
+	if(0) XtMoveWidget(pshell, WidthOfScreen(XtScreen(pshell))*2/5, HeightOfScreen(XtScreen(pshell))*2/5);
+	XtPopup(pshell, XtGrabNonexclusive);
+	XtRealizeWidget(pshell);
 
-  if (appData.popupFix) {
-	popupFixer(pshell);
-  }
+	if (0 && appData.popupFix) {
+		popupFixer(pshell);
+	} else {
+		xtmove(pshell);
+	}
 	//dialog_input(pshell);
 	wm_delete(pshell, "PasswordDialogDone()");
 
-  passwordDialogDone = False;
+	passwordDialogDone = False;
 
-  while (!passwordDialogDone) {
-    XtAppProcessEvent(appContext, XtIMAll);
-  }
+	while (!passwordDialogDone) {
+		XtAppProcessEvent(appContext, XtIMAll);
+	}
 
-  valueString = XawDialogGetValueString(dialog);
+	valueString = XawDialogGetValueString(dialog);
 	rmNL(valueString);
-  password = XtNewString(valueString);
+	password = XtNewString(valueString);
 
-  XtPopdown(pshell);
-  return password;
+	XtPopdown(pshell);
+	return password;
 }

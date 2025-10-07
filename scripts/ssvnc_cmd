@@ -98,9 +98,10 @@ PATH=$PATH:/usr/bin:/bin
 export PATH
 
 if [ "X$FULLNAME" = "XKarl J. Runge" ]; then
-	VNCVIEWER_POPUP_FIX=1
-	export VNCVIEWER_POPUP_FIX
-
+	if [ "X$NOPOPUFIX" = "X" ]; then
+		VNCVIEWER_POPUP_FIX=1
+		export VNCVIEWER_POPUP_FIX
+	fi
 	PATH=`echo "$PATH" | sed -e 's,runge/bin/override,-------------,'`
 fi
 

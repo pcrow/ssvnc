@@ -42,6 +42,9 @@
 		} \
 	}
 
+extern int skip_maybe_sync;
+extern void maybe_sync(int w, int h);
+
 static Bool
 HandleHextileBPP (int rx, int ry, int rw, int rh)
 {
@@ -53,21 +56,43 @@ HandleHextileBPP (int rx, int ry, int rw, int rh)
   int sx, sy, sw, sh;
   CARD8 subencoding;
   CARD8 nSubrects;
+  int irect = 0, nrects = (rw * rh) / (16 * 16);
+  static int nosync_ycrop = -1;
+
+	if (nosync_ycrop < 0) {
+		nosync_ycrop = 0;
+		if (getenv("HEXTILE_YCROP_TOO")) {
+			nosync_ycrop = 1;
+		}
+	}
 
   for (y = ry; y < ry+rh; y += 16) {
     for (x = rx; x < rx+rw; x += 16) {
       w = h = 16;
-      if (rx+rw - x < 16)
+      if (rx+rw - x < 16) {
 	w = rx+rw - x;
-      if (ry+rh - y < 16)
+      }
+      if (ry+rh - y < 16) {
 	h = ry+rh - y;
+      }
 
-      if (!ReadFromRFBServer((char *)&subencoding, 1))
+	if (nrects > 400 && (appData.yCrop == 0 || nosync_ycrop)) {
+		skip_maybe_sync = 0;	
+		if (irect++ % 2000 != 0) {
+			if (x < rx+rw-16 || y < ry+rh-16) {
+				skip_maybe_sync	= 1;
+			}
+		}
+	}
+
+      if (!ReadFromRFBServer((char *)&subencoding, 1)) {
 	return False;
+      }
 
       if (subencoding & rfbHextileRaw) {
-	if (!ReadFromRFBServer(buffer, w * h * (BPP / 8)))
+	if (!ReadFromRFBServer(buffer, w * h * (BPP / 8))) {
 	  return False;
+        }
 
 	CopyDataToScreen(buffer, x, y, w, h);
 	continue;
