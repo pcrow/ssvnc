@@ -324,6 +324,10 @@ void Quit(Widget w, XEvent *event, String *params, Cardinal *num_params) {
  * Cleanup - perform any cleanup operations prior to exiting.
  */
 
+extern pid_t exec_pid;
+
+extern char *time_str(void);
+
 void Cleanup() {
 
 	if (appData.chatActive) {
@@ -348,7 +352,41 @@ void Cleanup() {
 
 	releaseAllPressedModifiers();
 
-	fprintf(stderr,"\nVNC Viewer exiting.\n\n");
+	if (rfbsock >= 0) {
+		close(rfbsock);
+		rfbsock = -1;
+	}
+
+	if (exec_pid > 0) {
+		int status;
+		waitpid(exec_pid, &status, WNOHANG);
+		if (kill(exec_pid, 0) == 0) {
+			if (getenv("SSVNC_NO_KILL_EXEC_CMD")) {
+				fprintf(stderr,"Not killing exec=<cmd>  pid: %d\n", (int) exec_pid);
+			} else {
+				int i;
+				fprintf(stderr,"Waiting for exec=<cmd>  pid: %d to finish...\n", (int) exec_pid);
+				usleep(50 * 1000);
+				for (i=0; i < 15; i++) {
+					waitpid(exec_pid, &status, WNOHANG);
+					if (kill(exec_pid, 0) != 0) {
+						fprintf(stderr, "Process exec=<cmd>  pid: %d finished.  (%d msec)\n",
+						    (int) exec_pid, i*100 + 50);
+						break;
+					}
+					usleep(100 * 1000);
+				}
+				waitpid(exec_pid, &status, WNOHANG);
+				if (kill(exec_pid, 0) == 0) {
+					fprintf(stderr,"Sending SIGTERM to exec=<cmd> pid: %d\n", (int) exec_pid);
+					kill(exec_pid, SIGTERM);
+				}
+			}
+		}
+		exec_pid = 0;
+	}
+
+	fprintf(stderr,"\n%s VNC Viewer exiting.\n\n", time_str());
 	if (listenSpecified) {
 		if (listenParent != 0 && getenv("SSVNC_LISTEN_ONCE") && listenParent != getpid()) {
 			fprintf(stderr, "SSVNC_LISTEN_ONCE: Trying to kill Listening Parent: %d\n", (int) listenParent);

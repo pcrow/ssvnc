@@ -9,6 +9,7 @@
 ! The title of the main window.  "%s" will be replaced by the desktop name.
 !
 
+! macosx should be F7
 Ssvnc.title: SSVNC: %s Press F8 for Menu
 
 
@@ -52,6 +53,8 @@ Ssvnc.translations:\
 !
 ! Default translations on desktop window.
 !
+
+! macosx has F7 too.
 
 *desktop.baseTranslations:\
   <Key>F8: ShowPopup()\n\

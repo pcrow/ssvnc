@@ -37,6 +37,10 @@ ssvncviewer \- an X viewer client for VNC
 .br
 .B ssvncviewer
 .RI [\| options \|]
+.RI unix=/path/to/unix/socket
+.br
+.B ssvncviewer
+.RI [\| options \|]
 .IR \-listen
 .RI [\| display \|]
 .br
@@ -54,8 +58,8 @@ ssvncviewer is an enhanced version of the tightvnc unix viewer that can
 take advantage of features in the \fBx11vnc\fR and UltraVNC VNC servers.
 See below for the description of these features.
 
-You can use F8 to display a pop\-up utility menu. Press F8 twice to
-pass single F8 to the remote side.
+You can use F8 to display a pop\-up utility menu (also F7 on MacOSX.)
+Press F8 twice to pass single F8 to the remote side.
 .SH OPTIONS
 .TP
 \fB\-help\fR
@@ -209,13 +213,17 @@ viewer is attached to its stdio.  This enables tunnelling
 established via an external command, e.g. an stunnel(8)
 that does not involve a listening socket.
 This mode does not work for -listen reverse connections.
+To not have the exec= pid killed at exit, set SSVNC_NO_KILL_EXEC_CMD=1.
+
 
 If the host:port is specified as "fd=n" then it is assumed
 n is an already opened file descriptor to the socket. (i.e
 the parent did fork+exec)
 
-If the host:port contains a '/' it is interpreted as a
-unix-domain socket (AF_LOCAL insead of AF_INET)
+If the host:port contains a '/' and exists in the file system
+it is interpreted as a unix-domain socket (AF_LOCAL/AF_UNIX
+instead of AF_INET)  Prefix with unix= to force interpretation
+as a unix-domain socket.
 .TP
 \fB\-multilisten\fR
 As in -listen (reverse connection listening) except

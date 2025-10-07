@@ -1,6 +1,6 @@
        Enhanced TightVNC Viewer (SSVNC: SSL/SSH VNC viewer)
 
-Copyright (c) 2006-2009 Karl J. Runge <runge@karlrunge.com>
+Copyright (c) 2006-2010 Karl J. Runge <runge@karlrunge.com>
 All rights reserved.
 
 These bundles provide 1) An enhanced TightVNC Viewer on Unix, 2) Binaries
@@ -255,7 +255,7 @@ Unix and Mac OS X:
 
     Unpack the archive:
 
-        % gzip -dc ssvnc-1.0.28.tar.gz | tar xvf -
+        % gzip -dc ssvnc-1.0.29.tar.gz | tar xvf -
 
     Run the GUI:
 
@@ -263,7 +263,7 @@ Unix and Mac OS X:
 
         % ./ssvnc/MacOSX/ssvnc             (for Mac OS X)
 
-    The smaller file "ssvnc_no_windows-1.0.28.tar.gz"
+    The smaller file "ssvnc_no_windows-1.0.29.tar.gz"
     could have been used as well.
 
     On MacOSX you could also click on the SSVNC app icon in the Finder.
@@ -309,8 +309,8 @@ Unix/MacOSX Install:
 
     For the conventional source tarball it will compile and install, e.g.:
 
-       gzip -dc ssvnc-1.0.28.src.tar.gz | tar xvf -
-       cd ssvnc-1.0.28
+       gzip -dc ssvnc-1.0.29.src.tar.gz | tar xvf -
+       cd ssvnc-1.0.29
        make config
        make all
        make PREFIX=/my/install/dir install
@@ -322,7 +322,7 @@ Windows:
 
     Unzip, using WinZip or a similar utility, the zip file:
 
-        ssvnc-1.0.28.zip
+        ssvnc-1.0.29.zip
 
     Run the GUI, e.g.:
 
@@ -334,7 +334,7 @@ Windows:
 
     select Open, and then OK to launch it.
 
-    The smaller file "ssvnc_windows_only-1.0.28.zip"
+    The smaller file "ssvnc_windows_only-1.0.29.zip"
     could have been used as well.
 
     You can make a Windows shortcut to this program if you want to.
@@ -368,7 +368,9 @@ when you start up ssvnc, as a regular user, it cannot create files in
 that folder and so it fails to run properly. We recommend to not copy
 or extract the "ssvnc" folder into "Program Files". Rather, extract
 it to somewhere you have write permission (e.g. C:\ or your User dir)
-and create a Shortcut to ssvnc.exe on the desktop.
+and create a Shortcut to ssvnc.exe on the desktop.  Samira Al-Ghuiyy
+reports that SSVNC works properly in remote helpdesk mode using UltraVNC
+Single-click in Windows Vista.
 
 If you must put a launcher file down in "Program Files", perhaps an
 "ssvnc.bat" that looks like this:

@@ -1186,13 +1186,6 @@ public class SSLSocketToMe {
 				String s2 = s.toLowerCase();
 				String v2 = v.toLowerCase();
 
-				if (s2.indexOf("proxy") < 0 && v2.indexOf("proxy") < 0) {
-					continue;
-				}
-				if (v2.indexOf("http") < 0) {
-					continue;
-				}
-
 				if (s2.indexOf("proxy.https.host") >= 0) {
 					proxyHost = v2;
 					continue;
@@ -1207,6 +1200,25 @@ public class SSLSocketToMe {
 				}
 				if (s2.indexOf("proxy.http.port") >= 0) {
 					proxyPort_nossl = gint(v2);
+					continue;
+				}
+			}
+
+			for (Enumeration e = props.propertyNames(); e.hasMoreElements(); ) {
+				String s = (String) e.nextElement();
+				String v = System.getProperty(s);
+				String s2 = s.toLowerCase();
+				String v2 = v.toLowerCase();
+
+				if (proxyHost != null && proxyPort > 0) {
+					break;
+				}
+
+				// look for something like: javaplugin.proxy.config.list = http=10.0.2.1:8082
+				if (s2.indexOf("proxy") < 0 && v2.indexOf("proxy") < 0) {
+					continue;
+				}
+				if (v2.indexOf("http") < 0) {
 					continue;
 				}
 

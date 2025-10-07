@@ -22,6 +22,7 @@
  */
 
 #include <unistd.h>
+#include <time.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/time.h>
@@ -44,6 +45,14 @@ static void flashDisplay(Display *d, char *user);
 static Bool AllXEventsPredicate(Display *d, XEvent *ev, char *arg);
 
 void raiseme(int force);
+
+char _tbuf[256];
+char *time_str(void) {
+	time_t clock;
+	time(&clock);
+	strftime(_tbuf, 255, "%Y/%m/%d %X", localtime(&clock));
+	return _tbuf;
+}
 
 static int accept_popup_check(int *argc, char **argv, char *sip, char *sih) {
 	char line[16];
@@ -84,7 +93,7 @@ static int accept_popup_check(int *argc, char **argv, char *sip, char *sih) {
 			XtVaSetValues(toplevel, XtNgeometry, geometry, NULL);
 			XtRealizeWidget(toplevel);
 			dpy = XtDisplay(toplevel);
-			sprintf(msg, "\n(LISTEN) Reverse VNC connection from IP: %s\n                               Hostname: %s\n\n", sip, sih);
+			sprintf(msg, "\n(LISTEN) Reverse VNC connection from IP: %s  %s\n                               Hostname: %s\n\n", sip, time_str(), sih);
 			strcat(msg, "Accept or Reject VNC connection?");
 			if (CreateMsg(msg, 2)) {
 				XCloseDisplay(dpy);
@@ -253,7 +262,9 @@ listenForIncomingConnections(int *argc, char **argv, int listenArgIndex)
 	}
 	FD_SET(ConnectionNumber(d), &fds);
 
+	fprintf(stderr, "\n%s select() start ...\n", time_str()); 
 	select(FD_SETSIZE, &fds, NULL, NULL, NULL);
+	fprintf(stderr, "%s select() returned.\n", time_str()); 
 
 	while ((pid = wait3(&status, WNOHANG, (struct rusage *)0))>0) {
 		if (pid > 0 && children > 0) {
@@ -352,7 +363,7 @@ listenForIncomingConnections(int *argc, char **argv, int listenArgIndex)
 		}
 
 		fprintf(stderr, "\n");
-		fprintf(stderr, "(LISTEN) Reverse VNC connection from IP: %s\n", sip);
+		fprintf(stderr, "(LISTEN) Reverse VNC connection from IP: %s  %s\n", sip, time_str());
 		fprintf(stderr, "                               Hostname: %s\n\n", sih);
 
 		if (sml == NULL && !accept_popup_check(argc, argv, sip, sih)) {
