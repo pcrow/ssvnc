@@ -1,0 +1,45 @@
+Description: Fix to conform to C23
+Bug-Debian: https://bugs.debian.org/1097933
+
+--- a/vnc_unixsrc/vncviewer/desktop.c
++++ b/vnc_unixsrc/vncviewer/desktop.c
+@@ -51,7 +51,7 @@ XImage *image_scale = NULL;
+ 
+ int image_is_shm = 0;
+ 
+-static Cursor CreateDotCursor();
++static Cursor CreateDotCursor(int which);
+ static void CopyBGR233ToScreen(CARD8 *buf, int x, int y, int width,int height);
+ static void HandleBasicDesktopEvent(Widget w, XtPointer ptr, XEvent *ev,
+ 				    Boolean *cont);
+@@ -2488,9 +2488,9 @@ SendRFBEvent(Widget w, XEvent *ev, Strin
+  * CreateDotCursor.
+  */
+ 
+-#ifndef very_small_dot_cursor
+ static Cursor
+ CreateDotCursor(int which)
++#ifndef very_small_dot_cursor
+ {
+ 	Cursor cursor;
+ 	Pixmap src, msk;
+@@ -2518,8 +2518,6 @@ CreateDotCursor(int which)
+ 	return cursor;
+ }
+ #else
+-static Cursor
+-CreateDotCursor()
+ {
+ 	Cursor cursor;
+ 	Pixmap src, msk;
+--- a/vnc_unixsrc/vncviewer/vncviewer.h
++++ b/vnc_unixsrc/vncviewer/vncviewer.h
+@@ -320,7 +320,7 @@ extern void JumpDown(Widget w, XEvent *e
+ 
+ /* listen.c */
+ 
+-extern void listenForIncomingConnections();
++extern void listenForIncomingConnections(int *argc, char **argv, int listenArgIndex);
+ 
+ /* misc.c */
+ 

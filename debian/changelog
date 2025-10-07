@@ -1,8 +1,9 @@
 ssvnc (1.0.29-7) UNRELEASED; urgency=medium
 
   * Move packaging to salsa.debian.org.
+  * gcc15.patch: Fixes needed to compile with GCC15 (Closes: #1097933).
 
- -- Magnus Holmgren <holmgren@debian.org>  Tue, 07 Oct 2025 11:01:43 +0200
+ -- Magnus Holmgren <holmgren@debian.org>  Tue, 07 Oct 2025 16:08:22 +0200
 
 ssvnc (1.0.29-6.1) unstable; urgency=medium
 
