@@ -15,7 +15,7 @@ Package: ssvnc
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, tk,
  openssh-client, bind9-host | host, procps, psmisc, xterm,
- stunnel4, openssl
+ stunnel4, openssl, net-tools
 Recommends: default-jre | java5-runtime
 Description: Enhanced TightVNC viewer with SSL/SSH tunnel helper
  VNC stands for Virtual Network Computing. It is, in essence, a remote
