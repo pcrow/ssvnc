@@ -854,7 +854,9 @@ InitialiseRFBConnection(void)
 	switch (secType) {
 		case rfbSecTypeNone:
 			fprintf(stderr, "No VNC authentication needed\n");
-			if (viewer_minor >= 8) {
+			if (accept_uvnc) {
+				;	/* we pretended 3.16 etc. */
+			} else if (viewer_minor >= 8) {
 				CARD32 authResult;
 
 				if (!ReadFromRFBServer((char *)&authResult, 4)) {

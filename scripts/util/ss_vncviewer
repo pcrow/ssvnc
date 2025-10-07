@@ -555,7 +555,7 @@ elif echo "$orig" | grep '^rsh:' > /dev/null; then
 fi
 
 # play around with host:display port:
-if echo "$orig" | grep ':' > /dev/null; then
+if echo "$orig" | grep ':[0-9][0-9]*$' > /dev/null; then
 	:
 else
 	# add or assume :0 if no ':'
@@ -703,6 +703,9 @@ if [ "X$ipv6" = "X1" -a "X$direct_connect" = "X1" ]; then
 		elif [ "X$SSVNC_NO_IPV6_PROXY" != "X" ]; then
 			:
 		elif [ "X$SSVNC_NO_IPV6_PROXY_DIRECT" != "X" ]; then
+			:
+		elif [ "X$SSVNC_USE_OURS" = "X1" ]; then
+			# requires 1.0.27 and later ssvncviewer binary
 			:
 		else
 			proxy="ipv6://$host:$port"
@@ -1258,8 +1261,33 @@ my $err = "";
 if (! $sock && $have_inet6) {
 	$err = $!;
 
+	print STDERR "pproxy: $!\n";
+
 	eval {$sock = IO::Socket::INET6->new(
 		PeerAddr => $proxy_host,
+		PeerPort => $proxy_port,
+		Proto => "tcp"
+	);};
+	$err .= " / $!";
+}
+
+if (! $sock && ($proxy_host =~ /^::ffff:(\d+\.\d+\.\d+\.\d+)$/i || $proxy_host =~ /^::ffff:([\da-f]+:[\da-f]+)$/i)) {
+	print STDERR "pproxy: $!\n";
+	my $ipv4_addr = $1;
+	if ($ipv4_addr =~ /:/) {
+		my ($a, $b) = split(/:/, $ipv4_addr);
+		$a = hex($a);
+		$b = hex($b);
+		$ipv4_addr  = sprintf("%d.", ($a & 0xff00) >> 8);
+		$ipv4_addr .= sprintf("%d.", ($a & 0x00ff));
+		$ipv4_addr .= sprintf("%d.", ($b & 0xff00) >> 8);
+		$ipv4_addr .= sprintf("%d",  ($b & 0x00ff));
+	}
+
+	print STDERR "pproxy: re-trying with ipv4 addr: $ipv4_addr\n";
+
+	eval {$sock = IO::Socket::INET->new(
+		PeerAddr => $ipv4_addr,
 		PeerPort => $proxy_port,
 		Proto => "tcp"
 	);};
@@ -2565,6 +2593,7 @@ if [ "X$use_ssh" = "X1" ]; then
 		sproxy1_user=""
 
 		if [ "X$sproxy1" != "X" ]; then
+			# XXX fix ipv6 ip adder here and below.
 			sproxy1_host=`echo "$sproxy1" | awk -F: '{print $1}'`
 			sproxy1_user=`echo "$sproxy1_host" | awk -F@ '{print $1}'`
 			sproxy1_host=`echo "$sproxy1_host" | awk -F@ '{print $2}'`
