@@ -1,0 +1,152 @@
+#!/bin/sh
+#
+# Copyright (c) 2006 by Karl J. Runge <runge@karlrunge.com>
+#
+# sslvnc:
+#
+#    A wrapper for ssvnc_cmd using a tcl/tk gui.
+#
+# See ssvnc_cmd for details.
+#
+if [ "X$XTERM_PRINT" != "X" ]; then
+	XTERM_PRINT=""
+	cat > /dev/null
+fi
+if [ "X$1" = "X-bg" ]; then
+	shift
+	$0 "$@" &
+	exit 0
+fi
+
+PATH=$PATH:/usr/bin:/bin:/usr/bin/X11:/usr/X11R6/bin:/usr/openwin/bin:/usr/sfw/bin:/usr/local/bin
+export PATH
+
+if [ "X$FULLNAME" = "XKarl J. Runge" ]; then
+	VNCVIEWER_POPUP_FIX=1
+	export VNCVIEWER_POPUP_FIX
+
+	PATH=`echo "$PATH" | sed -e 's,runge/bin/override,-------------,'`
+fi
+
+if [ "X$WISH" = "X" ]; then
+	WISH=wish
+	for try in wish8.4 wish wish8.3 wish8.5 wish8.6
+	do
+		if type $try > /dev/null; then
+			WISH=$try
+			break
+		fi
+	done
+fi
+
+
+SSVNC_GUI_CMD="$0 $*"
+export SSVNC_GUI_CMD
+SSVNC_LAUNCH=$SSVNC_GUI_CMD
+export SSVNC_LAUNCH
+
+# work out os.arch platform string and check for binaries:
+#
+name=$UNAME
+if [ "X$name" = "X" ]; then
+	name=`uname -sm | sed -e 's/ /./g' -e 's,/.*,,' -e 's/Linux\.i.86/Linux.i686/'`
+fi
+
+dL="-L"
+if uname -sr | egrep 'SunOS 5\.[5-8]' > /dev/null; then
+	dL="-h"
+fi
+
+f="$0"
+for t in 1 2 3 4 5
+do
+	if [ $dL "$f" ]; then
+		f0="$f"
+		f=`ls -l "$f" | sed -e 's/^.* -> //'`
+		if echo "$f" | grep '^/' > /dev/null; then
+			:
+		else
+			f="`dirname "$f0"`/$f"
+		fi
+	else
+		break
+	fi
+done
+dir=`dirname "$f"`
+PATH="$dir:$PATH"
+
+nearby=0
+if [ -x "$dir/vncviewer" -a -x "$dir/stunnel" ]; then
+	nearby=1
+fi
+if [ "X$name" = "X." ]; then
+	:
+	#type vncviewer
+	#type stunnel
+elif [ ! -d "$dir/$name" -a $nearby = 0 ]; then
+	echo
+	echo "Cannot find platform dir for your OS `uname -sm`:"
+	echo
+	echo "    $dir/$name" 
+	echo
+	PATH=$PATH:/usr/sbin:/usr/local/sbin:/dist/sbin
+
+	quit=0
+	if type vncviewer >/dev/null 2>/dev/null; then
+		:
+	else
+		echo "vncviewer not found in PATH." 
+		quit=1
+	fi
+	if type stunnel >/dev/null 2>/dev/null; then
+		:
+	else
+		echo "stunnel not found in PATH."
+		quit=1
+	fi
+	echo
+	if [ "X$quit" = "X1" ]; then
+		echo "You can set the \$UNAME env. var. to override the OS setting."
+		echo "Or, if available, run the ./build.unix script to build it."
+		echo "Or install external \"vncviewer\" and \"stunnel\" packages."
+		exit 1
+	fi
+	echo "Using externel \"vncviewer\" and \"stunnel\" found in PATH."
+else
+	STUNNEL=stunnel
+	#STUNNEL_EXTRA_OPTS=${STUNNEL_EXTRA_OPTS:-"maxconn = 1"}
+	#export STUNNEL STUNNEL_EXTRA_OPTS
+	SSVNC_VIEWER_INTERNAL=1
+	export SSVNC_VIEWER_INTERNAL
+fi
+
+
+# Put our os.arch and other utils dirs at head of PATH to be sure to
+# pick them up:
+#
+PATH="$dir:$dir/$name:$dir/util:$PATH"
+if echo "$dir" | grep '^/' > /dev/null; then
+	:
+else
+	dir=`pwd`/$dir
+	PATH="$dir:$dir/$name:$dir/util:$PATH"
+fi
+
+SSVNC_BASEDIR="$dir"
+export SSVNC_BASEDIR
+SSVNC_BASEDIRNAME="$dir/$name"
+export SSVNC_BASEDIRNAME
+
+if [ -f "$dir/util/ultraftp.jar" ]; then
+	SSVNC_ULTRA_FTP_JAR="$dir/util/ultraftp.jar"
+	export SSVNC_ULTRA_FTP_JAR
+fi
+
+if [ "X$1" = "X-cmd" ]; then
+	shift
+	exec ssvnc_cmd "$@"
+elif [ "X$WISH" = "Xwish" ]; then
+	exec ssvnc.tcl "$@"
+else
+	exec $WISH $dir/util/ssvnc.tcl "$@"
+fi
