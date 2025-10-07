@@ -294,6 +294,13 @@ SelectionFromVNC(Widget w, XEvent *event, String *params, Cardinal *num_params)
 
 	newServerCutText = False;
 
+	if (appData.appShare) {
+		if (strstr(serverCutText, "X11VNC_APPSHARE_CMD:") == serverCutText) {
+			/* do something with it? */
+			return;
+		}
+	}
+
 	XStoreBytes(dpy, serverCutText, strlen(serverCutText));
 
 	if (appData.recvText == NULL) {

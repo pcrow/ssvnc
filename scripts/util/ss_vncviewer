@@ -5,6 +5,22 @@
 #
 # Copyright (c) 2006-2009 by Karl J. Runge <runge@karlrunge.com>
 #
+# ss_vncviewer is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or (at
+# your option) any later version.
+# 
+# ss_vncviewer is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with ss_vncviewer; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA
+# or see <http://www.gnu.org/licenses/>.
+# 
+# 
 # You must have stunnel(8) installed on the system and in your PATH
 # (however, see the -ssh option below, in which case you will need ssh(1)
 # installed)  Note: stunnel is usually installed in an "sbin" subdirectory.
@@ -1824,30 +1840,39 @@ sub do_vencrypt_viewer_bridge {
 
 			set user {}
 			set pass {}
+
 			label .l -text {SSVNC VeNCrypt Viewer Bridge}
-			frame .f1
-			label .f1.l -text {Username: }
-			entry .f1.u -width 24 -textvariable user
-			frame .f2
-			label .f2.l -text {Password: }
-			entry .f2.u -width 24 -textvariable pass -show *
+
+			frame .f0
+			frame .f0.fL
+			label .f0.fL.la -text {Username: }
+			label .f0.fL.lb -text {Password: }
+
+			pack .f0.fL.la .f0.fL.lb -side top
+
+			frame .f0.fR
+			entry .f0.fR.ea -width 24 -textvariable user
+			entry .f0.fR.eb -width 24 -textvariable pass -show *
+
+			pack .f0.fR.ea .f0.fR.eb -side top -fill x
+
+			pack .f0.fL -side left
+			pack .f0.fR -side right -expand 1 -fill x
 
 			button .no -text Cancel -command {destroy .}
 			button .ok -text Done   -command {print_out; destroy .}
 
-			pack .f1.l -side left
-			pack .f1.u -side left -expand 1 -fill x
-			pack .f2.l -side left
-			pack .f2.u -side left -expand 1 -fill x
-
 			center_win .
-			pack .l .f1 .f2 .no .ok -side top -fill x
+			pack .l .f0 .no .ok -side top -fill x
 			update
 			wm deiconify .
 
-			bind .f1.u <Return> {focus .f2.u}
-			bind .f2.u <Return> {print_out; destroy .}
-			focus .f1.u
+			bind .f0.fR.ea <Return> {focus .f0.fR.eb}
+			bind .f0.fR.eb <Return> {print_out; destroy .}
+			focus .f0.fR.ea
+
+			wm resizable . 1 0
+			wm minsize . [winfo reqwidth .] [winfo reqheight .]
 END
 			close W;
 
@@ -2015,9 +2040,29 @@ END
 }
 
 Kecho() {
-	if [ "X$USER" = "Xrunge" ]; then
+	NO_KECHO=1
+	if [ "X$USER" = "Xrunge" -a "X$NO_KECHO" = "X" ]; then
 		echo "dbg: $*"
 	fi
+}
+
+NHAFL_warning() {
+	echo "" 
+	echo "** Warning: For the proxy: $proxy" 
+	echo "** Warning: the ssh(1) option: $ssh_NHAFL" 
+	echo "** Warning: will be used to avoid frequent 'ssh key has changed for localhost'"
+	echo "** Warning: dialogs and connection failures (for example, ssh will exit asking"
+	echo "** Warning: you to manually remove a key from ~/.ssh/known_hosts.)"
+	echo "** Warning: "
+	echo "** Warning: This decreases security: a Man-In-The-Middle attack is possible."
+	echo "** Warning: You can set the SSVNC_SSH_LOCALHOST_AUTH=1 env. var. to disable" 
+	echo "** Warning: using the NoHostAuthenticationForLocalhost ssh option." 
+	echo "** Warning: "
+	echo "** Warning: A better solution is to configure (in the SSVNC GUI) the setting:"
+	echo "** Warning: 'Options -> Advanced -> Private SSH KnownHosts file' (or set" 
+	echo "** Warning: SSVNC_KNOWN_HOSTS_FILE directly) to a per-connection known hosts" 
+	echo "** Warning: file.  This yields a both secure and convenient solution." 
+	echo "" 
 }
 
 # handle ssh case:
@@ -2029,6 +2074,8 @@ if [ "X$use_ssh" = "X1" ]; then
 	ssh_port="22"
 	ssh_host="$host"
 	vnc_host="$localhost"
+	ssh_UKHF=""
+	localhost_extra=""
 	# let user override ssh via $SSH
 	ssh=${SSH:-"ssh -x"}
 
@@ -2051,6 +2098,22 @@ if [ "X$use_ssh" = "X1" ]; then
 			sleep 5
 		fi
 	fi
+
+	ssh_NHAFL="-o NoHostAuthenticationForLocalhost=yes"
+	if [ "X$SSVNC_SSH_LOCALHOST_AUTH" = "X1" ]; then
+		ssh_NHAFL=""
+	fi
+	if [ "X$SSVNC_KNOWN_HOSTS_FILE" != "X" ]; then
+		ssh_NHAFL=""
+	
+		ssh_UKHF="-o UserKnownHostsFile=$SSVNC_KNOWN_HOSTS_FILE"
+		ssh_args="$ssh_args $ssh_UKHF"
+		if [ ! -f "$SSVNC_KNOWN_HOSTS_FILE" ]; then
+			touch "$SSVNC_KNOWN_HOSTS_FILE" >/dev/null 2>&1
+		fi
+		chmod 600 "$SSVNC_KNOWN_HOSTS_FILE" >/dev/null 2>&1
+	fi
+	did_ssh_NHAFL=""
 
 	if [ "X$SSVNC_LIM_ACCEPT_PRELOAD" != "X" ]; then
 		SSVNC_LIM_ACCEPT_PRELOAD="$SSVNC_BASEDIR/$SSVNC_UNAME/$SSVNC_LIM_ACCEPT_PRELOAD"
@@ -2181,8 +2244,13 @@ if [ "X$use_ssh" = "X1" ]; then
 		nd=`findfree 6600`
 		PPROXY_LISTEN=$nd; export PPROXY_LISTEN
 		$ptmp &
-		sleep 2
-		ssh_args="$ssh_args -o NoHostAuthenticationForLocalhost=yes"
+		sleep 1
+		if [ "X$ssh_NHAFL" != "X" -a "X$did_ssh_NHAFL" != "X1" ]; then
+			NHAFL_warning
+			ssh_args="$ssh_args $ssh_NHAFL"
+			did_ssh_NHAFL=1
+		fi
+		sleep 1
 		if [ "X$sproxy1" = "X" ]; then
 			u=""
 			if echo "$host" | grep '@' > /dev/null; then
@@ -2193,6 +2261,7 @@ if [ "X$use_ssh" = "X1" ]; then
 		else
 			proxy="${sproxy1_user}$localhost:$nd"
 		fi
+		localhost_extra=".2"
 		if [ "X$sproxy_rest" != "X" ]; then
 			proxy="$proxy,$sproxy_rest"
 		fi
@@ -2224,12 +2293,21 @@ if [ "X$use_ssh" = "X1" ]; then
 			ssh_port2="22"
 		fi
 		proxport=`findfree 3500`
+		if [ "X$ssh_NHAFL" != "X" -a "X$did_ssh_NHAFL" != "X1" ]; then
+			NHAFL_warning
+			did_ssh_NHAFL=1
+			sleep 1
+		fi
 		echo
 		echo "Running 1st ssh proxy:"
-		echo "$ssh -f -x $ssh_port1 $targ -e none -o NoHostAuthenticationForLocalhost=yes -L $proxport:$ssh_host2:$ssh_port2 $ssh_host1 \"sleep 30\""
+		ukhf=""
+		if [ "X$ssh_UKHF" != "X" ]; then 
+			ukhf="$ssh_UKHF$localhost_extra"
+		fi
+		echo "$ssh -f -x $ssh_port1 $targ -e none $ssh_NHAFL $ukhf -L $proxport:$ssh_host2:$ssh_port2 $ssh_host1 \"sleep 30\""
 		echo ""
-		      $ssh -f -x $ssh_port1 $targ -e none -o NoHostAuthenticationForLocalhost=yes -L $proxport:$ssh_host2:$ssh_port2 $ssh_host1 "sleep 30"
-		ssh_args="$ssh_args -o NoHostAuthenticationForLocalhost=yes"
+		      $ssh -f -x $ssh_port1 $targ -e none $ssh_NHAFL $ukhf -L $proxport:$ssh_host2:$ssh_port2 $ssh_host1 "sleep 30"
+		ssh_args="$ssh_args $ssh_NHAFL"
 		sleep 1
 		stty sane
 		proxy="${ssh_user2}$localhost:$proxport"
@@ -2541,6 +2619,9 @@ if [ "X$verify" != "X" ]; then
 	verify="$verify
 verify = 2"
 fi
+if [ "X$SSVNC_STUNNEL_VERIFY3" != "X" ]; then
+	verify=`echo "$verify" | sed -e 's/verify = 2/verify = 3/'`
+fi
 if [ "X$mycert" != "X" ]; then
 	cert="cert = $mycert"
 fi
@@ -2639,6 +2720,15 @@ if [ "X$showcert" = "X1" ]; then
 	fi
 	#echo "openssl s_client $cipher_args -connect $host:$port" 
 	if [ "X$reverse" = "X" ]; then
+		host $host >/dev/null 2>&1
+		host $host >/dev/null 2>&1
+		timeout=15
+		if [ "X$SSVNC_FETCH_TIMEOUT" != "X" ]; then
+			timeout=$SSVNC_FETCH_TIMEOUT
+		fi
+		if type pkill >/dev/null 2>&1; then
+			(sleep $timeout; if kill -0 $$; then pkill -TERM -f "openssl.*s_client.*$host.*$port"; fi) >/dev/null 2>&1 &
+		fi
 		openssl s_client $cipher_args -prexit -connect $host:$port 2>&1 < /dev/null
 		rc=$?
 	else
@@ -2726,7 +2816,7 @@ if [ "X$direct_connect" != "X" ]; then
 			:
 		else
 			echo ""
-			echo "** NOTE: THERE WILL BE NO SSL OR SSH ENCRYPTION **"
+			echo "** WARNING: THERE WILL BE NO SSL OR SSH ENCRYPTION **"
 			echo ""
 		fi
 	fi
@@ -2947,6 +3037,14 @@ echo "Using this stunnel configuration:"
 echo ""
 cat "$tmp_cfg" | uniq
 echo ""
+if egrep -i '^[ 	]*(CApath|CAfile) =' "$tmp_cfg" > /dev/null ; then
+	:
+else
+	echo "** WARNING: THE STUNNEL CONFIG HAS NO SERVER CERTIFICATE SPECIFIED       **"
+	echo "** WARNING: (the CApath or CAfile stunnel option) THE VNC SERVER WILL    **"
+	echo "** WARNING: NOT BE AUTHENTICATED. A MAN-IN-THE-MIDDLE ATTACK IS POSSIBLE **"
+	echo ""
+fi
 sleep 1
 
 if [ "X$stunnel_exec" = "X" ]; then

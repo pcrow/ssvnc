@@ -30,26 +30,34 @@ static XShmSegmentInfo shminfo;
 static Bool caughtShmError = False;
 static Bool needShmCleanup = False;
 
-void
-ShmCleanup()
-{
-	fprintf(stderr,"ShmCleanup called\n");
+static int ShmCreationXErrorHandler(Display *dpy, XErrorEvent *error) {
+	caughtShmError = True;
+	return 0;
+}
+
+void ShmDetach() {
 	if (needShmCleanup) {
+		XErrorHandler oldXErrorHandler = XSetErrorHandler(ShmCreationXErrorHandler);
+		fprintf(stderr,"ShmDetach called.\n");
+		XShmDetach(dpy, &shminfo);
+		XSync(dpy, False);
+		XSetErrorHandler(oldXErrorHandler);
+	}
+}
+
+void ShmCleanup() {
+	if (needShmCleanup) {
+		fprintf(stderr,"ShmCleanup called.\n");
+		XSync(dpy, False);
 		shmdt(shminfo.shmaddr);
 		shmctl(shminfo.shmid, IPC_RMID, 0);
+
 		needShmCleanup = False;
 	}
 }
 
 Bool UsingShm() {
 	return needShmCleanup;
-}
-
-static int
-ShmCreationXErrorHandler(Display *dpy, XErrorEvent *error)
-{
-	caughtShmError = True;
-	return 0;
 }
 
 int scale_round(int len, double fac);

@@ -48,7 +48,7 @@ static void SetupBGR233Map();
 static void AllocateExactBGR233Colours();
 static Bool AllocateBGR233Colour(int r, int g, int b);
 
-static void SetupBGR565Map();
+static void SetupBGR565Map(unsigned long red_mask, unsigned long green_mask, unsigned long blue_mask);
 
 
 /*
@@ -135,7 +135,7 @@ SetVisualAndCmap()
 		fprintf(stderr, "Using default colormap and translating from BGR565 (65536 colors).  Pixel format:\n");
 		PrintPixelFormat(&myFormat);
 
-		SetupBGR565Map();
+		SetupBGR565Map(vis->red_mask, vis->green_mask, vis->blue_mask);
 		return;
   	}
   }
@@ -529,7 +529,7 @@ SetupBGR233Map()
 }
 
 static void
-SetupBGR565Map()
+SetupBGR565Map(unsigned long red_mask, unsigned long green_mask, unsigned long blue_mask)
 {
   int r, g, b;
   int r2, g2, b2;
@@ -565,7 +565,11 @@ SetupBGR565Map()
 			pixel = (r2 << 16) | (g2 << 8) | (b2 << 0);
 		}
 
-		idx = (b<<bs) | (g<<gs) | (r<<rs);
+		if (red_mask == 0xff) {
+			idx = (r<<bs) | (g<<gs) | (b<<rs);
+		} else {
+			idx = (b<<bs) | (g<<gs) | (r<<rs);
+		}
 		if (0) fprintf(stderr, "cnt: %5d idx: %5d pixel: 0x%08x\n", cnt, idx, pixel);
 		BGR565ToPixel[idx] = pixel;
 		cnt++;

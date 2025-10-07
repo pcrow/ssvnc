@@ -301,7 +301,7 @@ ConnectToRFBServer(const char *hostname, int port)
 		pid_t pid;
 
 		q = strstr(cmd2, "pw=");
-		if (q) {
+		if (q && !getenv("SSVNC_SHOW_ULTRAVNC_DSM_PASSWORD")) {
 			q += strlen("pw=");
 			while (*q != '\0' && !isspace(*q)) {
 				*q = '*';
@@ -666,7 +666,9 @@ InitialiseRFBConnection(void)
 	}
 	sprintf(pv, rfbProtocolVersionFormat, viewer_major, viewer_minor);
 
-	usleep(100*1000);
+	if (!appData.appShare) {
+		usleep(100*1000);
+	}
 	dt = dnow();
 	if (!WriteExact(rfbsock, pv, sz_rfbProtocolVersionMsg)) {
 		return False;
@@ -831,7 +833,7 @@ InitialiseRFBConnection(void)
 
 	switch (secType) {
 		case rfbSecTypeNone:
-			fprintf(stderr, "No authentication needed\n");
+			fprintf(stderr, "No VNC authentication needed\n");
 			if (viewer_minor == 8) {
 				CARD32 authResult;
 
@@ -915,6 +917,33 @@ InitialiseRFBConnection(void)
 	}
 
 	desktopName[si.nameLength] = 0;
+
+	if (appData.appShare) {
+		int x_hint, y_hint;
+		char *p, *q = NULL;
+		p = desktopName;
+		while (*p != '\0') {
+ 			char *t = strstr(p, " XY=");
+			if (t) q = t;
+			p++;
+		}
+		if (q) {
+			int ok = 1;
+			p = q + strlen(" XY=");
+			while (*p != '\0') {
+				if (!strpbrk(p, "0123456789,+-")) {
+					ok = 0;
+				}
+				p++;
+			}
+			if (ok && sscanf(q+1, "XY=%d,%d", &x_hint, &y_hint) == 2) {
+				fprintf(stderr,"Using x11vnc appshare position: %s\n\n", q);
+				*q = '\0';
+				appshare_x_hint = x_hint;
+				appshare_y_hint = y_hint;
+			}
+		}
+	}
 
 	fprintf(stderr,"Desktop name \"%s\"\n\n", desktopName);
 
@@ -1112,7 +1141,7 @@ PerformAuthenticationTight(void)
 	caps.nAuthTypes = Swap32IfLE(caps.nAuthTypes);
 
 	if (!caps.nAuthTypes) {
-		fprintf(stderr, "No authentication needed\n\n");
+		fprintf(stderr, "No VNC authentication needed\n\n");
 		return True;
 	}
 

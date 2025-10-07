@@ -731,7 +731,7 @@ ListenAtTcpPort(int port)
     return -1;
   }
 
-  if (listen(sock, 5) < 0) {
+  if (listen(sock, 32) < 0) {
     fprintf(stderr,programName);
     perror(": ListenAtTcpPort: listen");
     close(sock);

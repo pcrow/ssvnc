@@ -148,11 +148,19 @@ char *fallback_resources[] = {
                               "The above mappings are *always* active in ViewOnly mode, unless you set the\\n"
                               "Escape Keys value to 'never'.\\n"
                               "\\n"
-                              "If the Escape Keys value below is set to 'default' then a default list of\\n"
-                              "of modifier keys is used.  For Unix it is: Alt_L,Super_L and for MacOSX it\\n"
-                              "is Control_L,Meta_L.  Note: the Super_L key usually has a Windows(TM) Flag\\n"
-                              "on it.  Also note the _L and _R mean the key is on the LEFT or RIGHT side\\n"
-                              "of the keyboard.\\n"
+                              "x11vnc -appshare hot-keys:  x11vnc has a simple application sharing mode\\n"
+                              "that enables the viewer-side to move, resize, or raise the remote toplevel\\n"
+                              "windows.  To enable it, hold down Shift + the Escape Keys and press these:\\n"
+                              "\\n"
+                              "   Arrow keys:              move the remote window around in its desktop.\\n"
+                              "   PageUp/PageDn/Home/End:  resize the remote window.\\n"
+                              "   +/-                      raise or lower the remote window.\\n"
+                              "   M or Button1 move win to local position;  D or Button3: delete remote win.\\n"
+                              "\\n"
+                              "If the Escape Keys value below is set to 'default' then a fixed list of\\n"
+                              "modifier keys is used.  For Unix it is: Alt_L,Super_L and for MacOSX it is\\n"
+                              "Control_L,Meta_L.  Note: the Super_L key usually has a Windows(TM) Flag.\\n"
+                              "Also note the _L and _R mean the key is on the LEFT or RIGHT side of keyboard.\\n"
                               "\\n"
                               "On Unix   the default is Alt and Windows keys on Left side of keyboard.\\n"
                               "On MacOSX the default is Control and Command keys on Left side of keyboard.\\n"
@@ -167,7 +175,7 @@ char *fallback_resources[] = {
                               "\\n"
                               "Current Escape Keys Value:",
   "*escapeDialog.dialog.value:",
-  "*escapeDialog.dialog.value.width: 275",
+  "*escapeDialog.dialog.value.width: 280",
   "*escapeDialog.dialog.value.translations: #override\\n\
      <KeyRelease>Return: EscapeDialogDone()",
 
@@ -897,6 +905,9 @@ static XtResource appDataResourceList[] = {
   {"recvText", "RecvText", XtRString, sizeof(String),
    XtOffsetOf(AppData, recvText), XtRImmediate, (XtPointer) 0},
 
+  {"appShare", "AppShare", XtRBool, sizeof(Bool),
+   XtOffsetOf(AppData, appShare), XtRImmediate, (XtPointer) False},
+
   {"escapeKeys", "EscapeKeys", XtRString, sizeof(String),
    XtOffsetOf(AppData, escapeKeys), XtRImmediate, (XtPointer) 0},
 
@@ -967,6 +978,7 @@ XrmOptionDescRec cmdLineOptions[] = {
   {"-termchat",      "*termChat",           XrmoptionNoArg,  "True"},
   {"-chatonly",      "*chatOnly",           XrmoptionNoArg,  "True"},
   {"-scale",         "*scale",              XrmoptionSepArg, 0},
+  {"-appshare",      "*appShare",           XrmoptionNoArg,  "True"},
   {"-escape",        "*escapeKeys",         XrmoptionSepArg, 0},
   {"-sendclipboard", "*sendClipboard",      XrmoptionNoArg,  "True"},
   {"-sendalways",    "*sendAlways",         XrmoptionNoArg,  "True"},
@@ -1399,6 +1411,18 @@ usage(void)
 	  "                    framebuffer update coming in.  Helps 'pipeline' the updates.\n"
 	  "                    This is currently the default, use -nopipeline to disable.\n"
 	  "\n"
+	  "     -appshare      Enable features for use with x11vnc's -appshare mode where\n"
+	  "                    instead of sharing the full desktop only the application's\n"
+	  "                    windows are shared.  Viewer multilisten mode is used to\n"
+	  "                    create the multiple windows: -multilisten is implied.\n"
+	  "                    See 'x11vnc -appshare -help' more information on the mode.\n"
+	  "\n"
+	  "                    Features enabled in the viewer under -appshare are:\n"
+	  "                    Minimum extra text in the title, auto -ycrop is disabled,\n"
+	  "                    x11vnc -remote_prefix X11VNC_APPSHARE_CMD: message channel,\n"
+	  "                    x11vnc initial window position hints.  See also Escape Keys\n"
+	  "                    below for additional key and mouse bindings.\n"
+	  "\n"
 	  "     -escape str    This sets the 'Escape Keys' modifier sequence and enables\n"
 	  "                    escape keys mode.  When the modifier keys escape sequence\n"
 	  "                    is held down, the next keystroke is interpreted locally\n"
@@ -1512,6 +1536,7 @@ usage(void)
  * not already processed by XtVaAppInitialize().  It sets vncServerHost and
  * vncServerPort and all the fields in appData.
  */
+extern int saw_appshare;
 
 void
 GetArgsAndResources(int argc, char **argv)
@@ -1594,6 +1619,12 @@ GetArgsAndResources(int argc, char **argv)
 		if (appData.escapeKeys == NULL) {
 			appData.escapeKeys = strdup(getenv("VNCVIEWER_ESCAPE"));
 		}
+	}
+	if (saw_appshare) {
+		appData.appShare = True;
+	}
+	if (appData.appShare && appData.escapeKeys == NULL) {
+		appData.escapeKeys = strdup("default");
 	}
 	if (appData.escapeKeys != NULL) {
 		appData.escapeActive = True;
