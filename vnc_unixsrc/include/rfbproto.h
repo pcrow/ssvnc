@@ -396,7 +396,7 @@ typedef struct _rfbInteractionCapsMsg {
 #define rfbBell 2
 #define rfbServerCutText 3
 
-#define rfbResizeFrameBuffer 4 // Modif sf@2002
+#define rfbResizeFrameBuffer 4 /* Modif sf@2002 */
 
 /* http://sourceforge.net/projects/vncsessmgr */
 #define rfbRestartConnection 82
@@ -468,7 +468,9 @@ typedef struct _rfbInteractionCapsMsg {
 #define rfbEncodingZlibHex   8
 
 #define rfbEncodingZRLE 16
-// nyama/2006/08/02:new YUV-Wavlet lossy codec based on ZRLE (ZYWRLE)
+/*
+nyama/2006/08/02:new YUV-Wavlet lossy codec based on ZRLE (ZYWRLE)
+ */
 #define rfbEncodingZYWRLE 17
 
 
@@ -1008,9 +1010,9 @@ typedef struct _rfbRestartConnectionMsg {
 
 typedef struct _rfbTextChatMsg {
     CARD8 type;                 /* always rfbTextChat */
-    CARD8 pad1;         // Could be used later as an additionnal param
-    CARD16 pad2;                // Could be used later as text offset, for instance
-    CARD32 length;      // Specific values for Open, close, finished (-1, -2, -3)
+    CARD8 pad1;         /* Could be used later as an additionnal param */
+    CARD16 pad2;                /* Could be used later as text offset, for instance */
+    CARD32 length;      /* Specific values for Open, close, finished (-1, -2, -3) */
     /* followed by char text[length] */
 } rfbTextChatMsg;
 
@@ -1029,8 +1031,8 @@ typedef struct _rfbTextChatMsg {
 typedef struct _rfbResizeFrameBufferMsg {
     CARD8 type;                 /* always rfbResizeFrameBuffer */
         CARD8 pad1;
-        CARD16 framebufferWidth;        // FrameBuffer width
-        CARD16 framebufferHeight;       // FrameBuffer height
+        CARD16 framebufferWidth;        /* FrameBuffer width */
+        CARD16 framebufferHeight;       /* FrameBuffer height */
 } rfbResizeFrameBufferMsg;
 
 #define sz_rfbResizeFrameBufferMsg 6

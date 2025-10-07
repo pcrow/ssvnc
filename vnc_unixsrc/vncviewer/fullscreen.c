@@ -22,6 +22,7 @@
  */
 
 #include <vncviewer.h>
+#include <time.h>
 #include <X11/Xaw/Form.h>
 #include <X11/Xaw/Viewport.h>
 #include <X11/Xaw/Toggle.h>
@@ -164,7 +165,9 @@ static void net_wm_fullscreen(int to_fs) {
 	
 	int _NET_WM_STATE_REMOVE = 0;
 	int _NET_WM_STATE_ADD = 1;
+#if 0
 	int _NET_WM_STATE_TOGGLE = 2;
+#endif
 	Atom _NET_WM_STATE = XInternAtom(dpy, "_NET_WM_STATE", False);
 	Atom _NET_WM_STATE_FULLSCREEN = XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN", False);
 	XEvent xev;	
@@ -400,8 +403,10 @@ FullScreenOn()
 			XUnmapWindow(dpy, topwin);
 
 			XtVaSetValues(toplevel, XtNoverrideRedirect, True, NULL);
-			//XtVaSetValues(viewport, XtNoverrideRedirect, True, NULL);
-			//XtVaSetValues(desktop,  XtNoverrideRedirect, True, NULL);
+#if 0
+			XtVaSetValues(viewport, XtNoverrideRedirect, True, NULL);
+			XtVaSetValues(desktop,  XtNoverrideRedirect, True, NULL);
+#endif
 			XtVaSetValues(popup,    XtNoverrideRedirect, True, NULL);
 
 			XReparentWindow(dpy, topwin, DefaultRootWindow(dpy), 0, 0);
@@ -449,8 +454,10 @@ FullScreenOn()
 
 	/* Now we can set "toplevel" to its proper size. */
 
-//	XtVaSetValues(toplevel, XtNwidth, toplevelWidth, XtNheight, toplevelHeight, NULL);
-//	XtResizeWidget(toplevel, toplevelWidth, toplevelHeight, 0);
+#if 0
+	XtVaSetValues(toplevel, XtNwidth, toplevelWidth, XtNheight, toplevelHeight, NULL);
+	XtResizeWidget(toplevel, toplevelWidth, toplevelHeight, 0);
+#endif
 	XResizeWindow(dpy, topwin, toplevelWidth, toplevelHeight);
 
 	if (do_net_wm) {
@@ -518,7 +525,7 @@ FullScreenOn()
 
 	/* Try to get the input focus. */
 
-	// original vnc: DefaultRootWindow(dpy) instead of PointerRoot
+	/* original vnc: DefaultRootWindow(dpy) instead of PointerRoot */
 	XSetInputFocus(dpy, PointerRoot, RevertToPointerRoot, CurrentTime);
 
 	/* Optionally, grab the keyboard. */
@@ -604,8 +611,10 @@ FullScreenOff()
 
 	if (!do_net_wm) {
 		XtVaSetValues(toplevel, XtNoverrideRedirect, False, NULL);
-		//XtVaSetValues(viewport, XtNoverrideRedirect, False, NULL);
-		//XtVaSetValues(desktop,  XtNoverrideRedirect, False, NULL);
+#if 0
+		XtVaSetValues(viewport, XtNoverrideRedirect, False, NULL);
+		XtVaSetValues(desktop,  XtNoverrideRedirect, False, NULL);
+#endif
 		XtVaSetValues(popup,    XtNoverrideRedirect, False, NULL);
 	}
 
@@ -650,6 +659,7 @@ SetFullScreenState(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	} else {
 		XtVaSetValues(w, XtNstate, False, NULL);
 	}
+	if (w || ev || params || num_params) {}
 }
 
 
@@ -665,6 +675,7 @@ ToggleFullScreen(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	} else {
 		FullScreenOn();
 	}
+	if (w || ev || params || num_params) {}
 }
 
 
@@ -772,6 +783,7 @@ static void
 BumpScrollTimerCallback(XtPointer clientData, XtIntervalId *id)
 {
 	DoBumpScroll();
+	if (clientData || id) {}
 }
 
 /* not working: */
@@ -878,18 +890,23 @@ DoJumpScroll() {
 static void
 JumpScrollTimerCallback(XtPointer clientData, XtIntervalId *id) {
 	DoJumpScroll();
+	if (clientData || id) {}
 }
 void JumpRight(Widget w, XEvent *ev, String *params, Cardinal *num_params) {
 	JumpScroll(1, 0); 
+	if (w || ev || params || num_params) {}
 }
 void JumpLeft(Widget w, XEvent *ev, String *params, Cardinal *num_params) {
 	JumpScroll(0, 0); 
+	if (w || ev || params || num_params) {}
 }
 void JumpUp(Widget w, XEvent *ev, String *params, Cardinal *num_params) {
 	JumpScroll(1, 1); 
+	if (w || ev || params || num_params) {}
 }
 void JumpDown(Widget w, XEvent *ev, String *params, Cardinal *num_params) {
 	JumpScroll(0, 1); 
+	if (w || ev || params || num_params) {}
 }
 
 

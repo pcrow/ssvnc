@@ -22,6 +22,7 @@
  */
 
 #include "vncviewer.h"
+#include <ctype.h>
 #include <X11/Xaw/Toggle.h>
 
 char *programName;
@@ -31,6 +32,7 @@ Display* dpy;
 Widget toplevel;
 
 extern void raiseme(int force);
+extern void CreateChat(void);
 
 void set_sbwidth(int sbw) {
 	char *q, *p, t[5];
@@ -69,9 +71,8 @@ void set_sbwidth(int sbw) {
 }
 
 void min_title(void) {
-	char *q, *p;
-	int i, k, N = 4;
-	int db = 0;
+	char *q;
+	int k;
 
 	k = 0;
 	while (fallback_resources[k] != NULL) {
@@ -272,6 +273,10 @@ main(int argc, char **argv)
 	char *pw_loc = NULL;
 	programName = argv[0];
 
+	if (strrchr(programName, '/') != NULL) {
+		programName = strrchr(programName, '/') + 1;
+	}
+
 	for (i = 1; i < argc; i++) {
 		if (!strcmp(argv[i], "-env")) {
 			if (i+1 < argc) {
@@ -281,6 +286,18 @@ main(int argc, char **argv)
 				}
 			}
 		}
+		if (!strcmp(argv[i], "-noipv4")) {
+			putenv("VNCVIEWER_NO_IPV4=1");
+		}
+		if (!strcmp(argv[i], "-noipv6")) {
+			putenv("VNCVIEWER_NO_IPV6=1");
+		}
+	}
+	if (getenv("VNCVIEWER_NO_IPV4")) {
+		appData.noipv4 = True;
+	}
+	if (getenv("VNCVIEWER_NO_IPV6")) {
+		appData.noipv6 = True;
 	}
 
   /* The -listen option is used to make us a daemon process which listens for
@@ -456,7 +473,7 @@ main(int argc, char **argv)
 						tmp[i] = '\0';
 					}
 					for (i=0; i<250; i++) {
-						if (i >= strlen(appData.repeaterUltra)) {
+						if (i >= (int) strlen(appData.repeaterUltra)) {
 							break;
 						}
 						tmp[i] = appData.repeaterUltra[i];
@@ -556,7 +573,7 @@ static Widget bfull = NULL;
 
 int do_format_change = 0;
 int do_cursor_change = 0;
-int do_fb_update = 0.0;
+double do_fb_update = 0.0;
 static void schedule_format_change(void) {
 	do_format_change = 1;
 	do_cursor_change = 0;
@@ -609,6 +626,7 @@ Toggle8bpp(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 		fprintf(stderr, "8bpp: on (%d colors)\n", appDataNew.useBGR233);
 	}
 	schedule_format_change();
+	if (w || ev || params || num_params) {}
 }
 
 
@@ -629,6 +647,7 @@ Toggle16bpp(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 		fprintf(stderr, "16bpp: on\n");
 	}
 	schedule_format_change();
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -656,6 +675,7 @@ ToggleFullColor(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 		}
 	}
 	schedule_format_change();
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -669,6 +689,7 @@ ToggleXGrab(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	fprintf(stderr, "ToggleXGrab, current=%d\n", appData.grabAll);
 	/* always ungrab to be sure, fullscreen will handle the rest */
 	XUngrabServer(dpy);
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -679,6 +700,7 @@ ToggleEscapeActive(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	} else {
 		appData.escapeActive = True;
 	}
+	if (w || ev || params || num_params) {}
 }
 
 /*
@@ -701,6 +723,7 @@ Toggle256Colors(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 		appDataNew.useBGR565 = False;
 		schedule_format_change();
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -715,6 +738,7 @@ Toggle64Colors(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 		appDataNew.useBGR565 = False;
 		schedule_format_change();
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -729,6 +753,7 @@ Toggle8Colors(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 		appDataNew.useBGR565 = False;
 		schedule_format_change();
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -744,6 +769,7 @@ ToggleGreyScale(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 		fprintf(stderr, "greyscale: on\n");
 	}
 	schedule_format_change();
+	if (w || ev || params || num_params) {}
 }
 
 /*
@@ -762,6 +788,7 @@ ToggleJPEG(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 		fprintf(stderr, "JPEG: on\n");
 	}
 	schedule_format_change();
+	if (w || ev || params || num_params) {}
 }
 
 /*
@@ -819,6 +846,7 @@ ToggleTightZRLE(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 		first = 0;
 	}
 	schedule_format_change();
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -849,6 +877,7 @@ ToggleZRLEZYWRLE(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 		}
 	}
 	schedule_format_change();
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -895,6 +924,7 @@ ToggleTightHextile(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 		first = 0;
 	}
 	schedule_format_change();
+	if (w || ev || params || num_params) {}
 }
 
 void scale_check_zrle(void) {
@@ -907,7 +937,7 @@ void scale_check_zrle(void) {
 		return;
 	}
 	if (!usingZRLE && !usingHextile) {
-		Widget w;
+		Widget w = 0;
 		fprintf(stderr, "\nSwitching to faster ZRLE encoding in client-side scaling mode.\n");
 		fprintf(stderr, "Switch back to Tight via the Popup menu if you prefer it.\n\n");
 		ToggleTightZRLE(w, NULL, NULL, NULL);
@@ -929,6 +959,7 @@ ToggleViewOnly(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 		fprintf(stderr, "viewonly: on\n");
 	}
 	Xcursors(1);
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -948,6 +979,7 @@ ToggleCursorShape(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	} else {
 		do_cursor_change = -1;
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -960,6 +992,7 @@ ToggleCursorAlpha(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 		appData.useCursorAlpha = True;
 		fprintf(stderr, "useCursorAlpha: on\n");
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -975,6 +1008,7 @@ ToggleX11Cursor(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	}
 	schedule_format_change();
 	do_cursor_change = 1;
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -987,6 +1021,7 @@ ToggleBell(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 		appData.useBell = True;
 		fprintf(stderr, "useBell: on\n");
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -1001,6 +1036,7 @@ ToggleRawLocal(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 		fprintf(stderr, "useRawLocal: on\n");
 	}
 	schedule_format_change();
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -1015,6 +1051,7 @@ ToggleServerInput(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 		fprintf(stderr, "serverInput: on\n");
 		SendServerInput(False);
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -1028,6 +1065,7 @@ TogglePipelineUpdates(Widget w, XEvent *ev, String *params, Cardinal *num_params
 		fprintf(stderr, "pipeline-update: on\n");
 	}
 	/* XXX request one to be sure? */
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -1040,6 +1078,7 @@ ToggleSendClipboard(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 		appData.sendClipboard = True;
 		fprintf(stderr, "Send CLIPBOARD Selection: on (do not send PRIMARY)\n");
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -1052,6 +1091,7 @@ ToggleSendAlways(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 		appData.sendAlways = True;
 		fprintf(stderr, "Send Selection Always: on\n");
 	}
+	if (w || ev || params || num_params) {}
 }
 
 
@@ -1077,10 +1117,16 @@ ToggleSingleWindow(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 			XDefineCursor(dpy, desktopWin, bogoCursor);
 		}
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void raiseme(int force);
 void AppendChatInput(char *);
+
+extern void ShowChat(Widget w, XEvent *event, String *params, Cardinal *num_params);
+extern void ShowFile(Widget w, XEvent *event, String *params, Cardinal *num_params);
+extern Bool SendTextChatFinished(void);
+
 
 void printChat(char *str, Bool raise) {
 	if (appData.termChat) {
@@ -1090,7 +1136,7 @@ void printChat(char *str, Bool raise) {
 		fprintf(stderr, str);
 	} else {
 		if (raise) {
-			ShowChat();
+			ShowChat(0, 0, 0, 0);
 		}
 		AppendChatInput(str);
 	}
@@ -1106,7 +1152,7 @@ ToggleTextChat(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 		HideChat(0, NULL, NULL, NULL);
 		appData.chatActive= False;
 	} else {
-		ShowChat();
+		ShowChat(0, 0, 0, 0);
 		SendTextChatOpen();
 		if (appData.termChat) {
 			printChat("\n*SentOpen*\n\nSend: ", True);
@@ -1115,6 +1161,7 @@ ToggleTextChat(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 		}
 		appData.chatActive = True;
 	}
+	if (w || ev || params || num_params) {}
 }
 
 extern int filexfer_sock;
@@ -1129,8 +1176,10 @@ ToggleFileXfer(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 {
 	static double last_start = 0.0;
 	if (appData.fileActive) {
-		//HideFile(w, ev, params, num_params);
-		//appData.fileActive = False;
+#if 0
+		HideFile(w, ev, params, num_params);
+		appData.fileActive = False;
+#endif
 #ifndef KILLJAVA
 		if (filexfer_sock >= 0) {
 			close(filexfer_sock);
@@ -1157,9 +1206,11 @@ ToggleFileXfer(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 		appData.fileActive = True;
 		last_start = dnow();
 	}
+	if (w || ev || params || num_params) {}
 }
 
 static int fooHandler(Display *dpy, XErrorEvent *error) {
+	if (dpy || error) {}
 	return 0;
 }
 
@@ -1213,6 +1264,7 @@ DoServerScale(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 		n = atoi(s);
 		set_server_scale(n);
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void set_server_quality(int n) {
@@ -1247,6 +1299,7 @@ DoServerQuality(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 		n = atoi(s);
 		set_server_quality(n);
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void set_server_compress(int n) {
@@ -1281,9 +1334,11 @@ DoServerCompress(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 		n = atoi(s);
 		set_server_compress(n);
 	}
+	if (w || ev || params || num_params) {}
 }
 
 extern void rescale_image(void);
+extern void get_scale_values(double *fx, double *fy);
 
 void
 SetScale(Widget w, XEvent *ev, String *params, Cardinal *num_params)
@@ -1291,8 +1346,10 @@ SetScale(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	char *s;
 	s = DoScaleDialog();
 	if (s[0] != '\0') {
+#if 0
 		int w = si.framebufferWidth;
 		int h = si.framebufferHeight;
+#endif
 		double fx, fy;
 		int fs = 0;
 		if (appData.scale != NULL && !strcmp(s, appData.scale)) {
@@ -1325,6 +1382,7 @@ SetScale(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 			FullScreenOn();
 		}
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -1336,6 +1394,7 @@ SetEscapeKeys(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	if (s[0] != '\0') {
 		appData.escapeKeys = strdup(s);
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void set_ycrop(int n) {
@@ -1369,6 +1428,7 @@ SetYCrop(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 		n = atoi(s);
 		set_ycrop(n);
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void set_scbar(int n) {
@@ -1403,6 +1463,7 @@ SetScbar(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 		n = atoi(s);
 		set_scbar(n);
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -1412,6 +1473,7 @@ SetScaleN(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 		int n = atoi(params[0]);
 		set_server_scale(n);
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void UpdateQual(void) {
@@ -1525,6 +1587,7 @@ SetTurboVNC(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 			LosslessRefresh();
 		}
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -1534,6 +1597,7 @@ SetQuality(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 		int n = atoi(params[0]);
 		set_server_quality(n);
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -1543,6 +1607,7 @@ SetCompress(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 		int n = atoi(params[0]);
 		set_server_compress(n);
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -1592,6 +1657,7 @@ SetViewOnlyState(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	} else {
 		XtVaSetValues(w, XtNstate, False, NULL);
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -1602,6 +1668,7 @@ SetNOJPEGState(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	} else {
 		XtVaSetValues(w, XtNstate, True, NULL);
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -1615,6 +1682,7 @@ SetQualityState(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 			XtVaSetValues(w, XtNstate, False, NULL);
 		}
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -1628,6 +1696,7 @@ SetCompressState(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 			XtVaSetValues(w, XtNstate, False, NULL);
 		}
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -1641,6 +1710,7 @@ SetScaleNState(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 			XtVaSetValues(w, XtNstate, False, NULL);
 		}
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -1657,6 +1727,7 @@ Set8bppState(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	} else {
 		XtVaSetValues(w, XtNstate, False, NULL);
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -1673,6 +1744,7 @@ Set16bppState(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	} else {
 		XtVaSetValues(w, XtNstate, False, NULL);
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -1689,6 +1761,7 @@ SetFullColorState(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 			XtVaSetValues(b16, XtNstate, False, NULL);
 		}
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -1699,6 +1772,7 @@ SetXGrabState(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	} else {
 		XtVaSetValues(w, XtNstate, False, NULL);
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -1709,6 +1783,7 @@ SetEscapeKeysState(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	} else {
 		XtVaSetValues(w, XtNstate, False, NULL);
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -1725,6 +1800,7 @@ Set256ColorsState(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	} else {
 		XtVaSetValues(w, XtNstate, False, NULL);
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -1741,6 +1817,7 @@ Set64ColorsState(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	} else {
 		XtVaSetValues(w, XtNstate, False, NULL);
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -1757,6 +1834,7 @@ Set8ColorsState(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	} else {
 		XtVaSetValues(w, XtNstate, False, NULL);
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -1767,9 +1845,10 @@ SetGreyScaleState(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	} else {
 		XtVaSetValues(w, XtNstate, False, NULL);
 	}
+	if (w || ev || params || num_params) {}
 }
 
-static init_state(void) {
+static void init_state(void) {
 	static int first = 1;
 	if (first && appData.encodingsString) {
 		char *t, *z, *y, *h;
@@ -1814,6 +1893,7 @@ SetZRLEState(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	} else {
 		XtVaSetValues(w, XtNstate, False, NULL);
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -1825,6 +1905,7 @@ SetHextileState(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	} else {
 		XtVaSetValues(w, XtNstate, False, NULL);
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -1836,6 +1917,7 @@ SetZYWRLEState(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	} else {
 		XtVaSetValues(w, XtNstate, False, NULL);
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -1846,6 +1928,7 @@ SetCursorShapeState(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	} else {
 		XtVaSetValues(w, XtNstate, False, NULL);
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -1856,6 +1939,7 @@ SetCursorAlphaState(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	} else {
 		XtVaSetValues(w, XtNstate, False, NULL);
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -1866,6 +1950,7 @@ SetX11CursorState(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	} else {
 		XtVaSetValues(w, XtNstate, False, NULL);
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -1876,6 +1961,7 @@ SetBellState(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	} else {
 		XtVaSetValues(w, XtNstate, True, NULL);
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -1886,6 +1972,7 @@ SetRawLocalState(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	} else {
 		XtVaSetValues(w, XtNstate, False, NULL);
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -1896,6 +1983,7 @@ SetServerInputState(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	} else {
 		XtVaSetValues(w, XtNstate, False, NULL);
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -1906,6 +1994,7 @@ SetPipelineUpdates(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	} else {
 		XtVaSetValues(w, XtNstate, True, NULL);
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -1916,6 +2005,7 @@ SetSendClipboard(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	} else {
 		XtVaSetValues(w, XtNstate, True, NULL);
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -1926,6 +2016,7 @@ SetSendAlways(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	} else {
 		XtVaSetValues(w, XtNstate, True, NULL);
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -1936,6 +2027,7 @@ SetSingleWindowState(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	} else {
 		XtVaSetValues(w, XtNstate, False, NULL);
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -1946,6 +2038,7 @@ SetTextChatState(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	} else {
 		XtVaSetValues(w, XtNstate, False, NULL);
 	}
+	if (w || ev || params || num_params) {}
 }
 
 void
@@ -1956,4 +2049,5 @@ SetFileXferState(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 	} else {
 		XtVaSetValues(w, XtNstate, False, NULL);
 	}
+	if (w || ev || params || num_params) {}
 }

@@ -100,7 +100,6 @@ processTunnelArgs(char **remoteHost, int *remotePort, int localPort,
 		  int *pargc, char **argv, int tunnelArgIndex)
 {
   char *pdisplay;
-  int port;
 
   if (tunnelArgIndex >= *pargc - 1)
     usage();
@@ -151,7 +150,7 @@ processViaArgs(char **gatewayHost, char **remoteHost,
       len--;
       portOffset = 0;
     }
-    if (!len || strspn(colonPos, "-0123456789") != len) {
+    if (!len || (int) strspn(colonPos, "-0123456789") != len) {
       usage();
     }
 #if 0

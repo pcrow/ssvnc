@@ -52,7 +52,6 @@ XImage *image_scale = NULL;
 int image_is_shm = 0;
 
 static Cursor CreateDotCursor();
-static Cursor CreateBogoCursor();
 static void CopyBGR233ToScreen(CARD8 *buf, int x, int y, int width,int height);
 static void HandleBasicDesktopEvent(Widget w, XtPointer ptr, XEvent *ev,
 				    Boolean *cont);
@@ -144,7 +143,7 @@ void try_create_image(void);
 void put_image(int src_x, int src_y, int dst_x, int dst_y, int width, int height, int solid);
 void create_image();
 
-// toplevel -> form -> viewport -> desktop
+/* toplevel -> form -> viewport -> desktop */
 
 void adjust_Xt_win(int w, int h) {
 	int x, y, dw, dh, h0 = h;
@@ -225,7 +224,7 @@ void rescale_image(void) {
 
 	if (image_scale == NULL) {
 		/* switching from not scaled */
-		int i, start_over = 0;
+		int i;
 		int Bpl = image->bytes_per_line;
 		char *dst, *src = image->data;
 
@@ -342,7 +341,7 @@ void rescale_image(void) {
 
 	SoftCursorUnlockScreen();
 
-	fprintf(stderr, "rescale: image_scale=0x%x image=0x%x image_ycrop=0x%x\n", image_scale, image, image_ycrop);
+	fprintf(stderr, "rescale: image_scale=%p image=%p image_ycrop=%p\n", (void *) image_scale, (void *) image, (void *) image_ycrop);
 	last_rescale = dnow();
 
 }
@@ -515,7 +514,7 @@ void check_tall(void) {
 		int h = si.framebufferHeight;
 		if (h > 2 * w) {
 			fprintf(stderr, "Tall display (%dx%d) suspect 'x11vnc -ncache' mode,\n", w, h);
-			fprintf(stderr, "  setting auto -ycrop detection.\n", w, h);
+			fprintf(stderr, "  setting auto -ycrop detection.\n");
 			appData.yCrop = -1;
 		}
 	}
@@ -564,7 +563,7 @@ DesktopInitBeforeRealization()
 	    True, HandleBasicDesktopEvent, NULL);
 
 	if (appData.yCrop) {
-		int wm, hm;
+		int hm;
 		if (appData.yCrop < 0) {
 			appData.yCrop = guessCrop();
 			fprintf(stderr, "Set -ycrop to: %d\n", appData.yCrop);
@@ -591,11 +590,14 @@ DesktopInitBeforeRealization()
 	create_image();
 }
 
+#if 0
 static Widget scrollbar_y = NULL;
-
 static int xsst = 2;
+#endif
+
 #include <X11/Xaw/Scrollbar.h>
 
+#if 0
 static XtCallbackProc Scrolled(Widget w, XtPointer closure, XtPointer call_data) {
 	Position x, y;
 	XtVaGetValues(desktop, XtNx, &x, XtNy, &y, NULL);
@@ -610,6 +612,7 @@ static XtCallbackProc Scrolled(Widget w, XtPointer closure, XtPointer call_data)
 		float t = 0.0;
 		XtVaSetValues(w, XtNtopOfThumb, &t, NULL);
 	}
+	if (closure) {}
 }
 
 static XtCallbackProc Jumped(Widget w, XtPointer closure, XtPointer call_data) {
@@ -629,12 +632,13 @@ static XtCallbackProc Jumped(Widget w, XtPointer closure, XtPointer call_data) {
 			XtVaSetValues(w, XtNtopOfThumb, *(XtArgVal*)&t, XtNshown, *(XtArgVal*)&s, NULL);
 		}
 	}
+	if (closure) {}
 }
+#endif
 
 extern double dnow(void);
 
 void check_things() {
-	static int installed_callback = 0;
 	static int first = 1;
 	static double last_scrollbar = 0.0;
 	int w = si.framebufferWidth;
@@ -659,7 +663,6 @@ void check_things() {
 		wv = XtNameToWidget(viewport, "vertical");
 		wh = XtNameToWidget(viewport, "horizontal");
 		if (wc && wv && wh) {
-			int doit = 1;
 			int sb = appData.sbWidth;
 			XtVaGetValues(wv, XtNwidth, &w0, XtNheight, &h0, XtNborderWidth, &b0, XtNx, &x0, XtNy, &y0, NULL);
 			XtVaGetValues(wh, XtNwidth, &w1, XtNheight, &h1, XtNborderWidth, &b1, XtNx, &x1, XtNy, &y1, NULL);
@@ -834,9 +837,6 @@ extern void FreeSoftCursor(void);
 void
 DesktopCursorOff()
 {
-	XSetWindowAttributes attr;
-	unsigned long valuemask;
-
 	if (dotCursor3 == None) {
 		dotCursor3 = CreateDotCursor(3);
 		dotCursor4 = CreateDotCursor(4);
@@ -886,7 +886,7 @@ static void scale_rect(double factor_x, double factor_y, int blend, int interpol
 
 	double w, wx, wy, wtot; /* pixel weights */
 
-	double x1, y1, x2, y2;  /* x-y coords for destination pixels edges */
+	double x1 = 0, y1, x2 = 0, y2;  /* x-y coords for destination pixels edges */
 	double dx, dy;          /* size of destination pixel */
 	double ddx=0, ddy=0;    /* for interpolation expansion */
 
@@ -921,7 +921,7 @@ static void scale_rect(double factor_x, double factor_y, int blend, int interpol
 	unsigned long main_red_mask = image->red_mask;
 	unsigned long main_green_mask = image->green_mask;
 	unsigned long main_blue_mask = image->blue_mask;
-	int mark = 1, n;
+	int mark = 1;
 
 	char *src_fb = image_scale->data;
 	char *dst_fb = image->data;
@@ -929,7 +929,9 @@ static void scale_rect(double factor_x, double factor_y, int blend, int interpol
 	static int nosolid = -1;
 	int sbdy = 3;
 	double fmax = factor_x > factor_y ? factor_x : factor_y;
+#if 0
 	double fmin = factor_x < factor_y ? factor_x : factor_y;
+#endif
 
 	X1 = *px;
 	X2 = *px + *pw;
@@ -941,7 +943,7 @@ static void scale_rect(double factor_x, double factor_y, int blend, int interpol
 		sbdy = (int) (2.0 * fmax * sbdy);
 	}
 
-	//fprintf(stderr, "scale_rect: %dx%d+%d+%d\n", *pw, *ph, *px, *py);
+	/* fprintf(stderr, "scale_rect: %dx%d+%d+%d\n", *pw, *ph, *px, *py); */
 
 	*px = (int) (*px * factor_x);
 	*py = (int) (*py * factor_y);
@@ -1041,7 +1043,7 @@ static void scale_rect(double factor_x, double factor_y, int blend, int interpol
 			mag_int = n;
 		}
 	}
-if (0) fprintf(stderr, "X1: %d Y1: %d X2: %d Y2: %d\n", X1, Y1, X2, Y2);//G
+if (0) fprintf(stderr, "X1: %d Y1: %d X2: %d Y2: %d\n", X1, Y1, X2, Y2);
 
 	if (mark && !shrink && blend) {
 		/*
@@ -1125,7 +1127,7 @@ if (0) fprintf(stderr, "X1: %d Y1: %d X2: %d Y2: %d\n", X1, Y1, X2, Y2);//G
 	 * Loop over destination pixels in scaled fb:
 	 */
 	for (j=j1; j<j2; j++) {
-		int jbdy = 1, I1_solid;
+		int jbdy = 1, I1_solid = 0;
 
 		y1 =  j * dy;	/* top edge */
 		if (y1 > Ny - 1) {
@@ -1220,7 +1222,9 @@ if (0) fprintf(stderr, "X1: %d Y1: %d X2: %d Y2: %d\n", X1, Y1, X2, Y2);//G
 				I2 = I1 + 1;	/* simple interpolation */
 				ddx = x1 - I1;
 			}
-//if (first) fprintf(stderr, "  I1=%d I2=%d J1=%d J2=%d\n", I1, I2, J1, J2);//G
+#if 0
+if (first) fprintf(stderr, "  I1=%d I2=%d J1=%d J2=%d\n", I1, I2, J1, J2);
+#endif
 
 			/* Zero out accumulators for next pixel average: */
 			for (b=0; b<4; b++) {
@@ -1514,9 +1518,11 @@ if (db || 0) fprintf(stderr, "put_image(%d %d %d %d %d %d)\n", src_x, src_y, dst
 	}
 }
 
-//fprintf(stderr, "non-shmB image %d %d %d %d %d %d\n", src_x, src_y, dst_x, dst_y, width, height);
-//fprintf(stderr, "shm image_ycrop %d %d %d %d %d %d\n", 0, 0, dst_x, dst_y, width, height);
-//fprintf(stderr, "non-shmA image %d %d %d %d %d %d\n", src_x, src_y, dst_x, dst_y, width, height);
+#if 0
+fprintf(stderr, "non-shmB image %d %d %d %d %d %d\n", src_x, src_y, dst_x, dst_y, width, height);
+fprintf(stderr, "shm image_ycrop %d %d %d %d %d %d\n", 0, 0, dst_x, dst_y, width, height);
+fprintf(stderr, "non-shmA image %d %d %d %d %d %d\n", src_x, src_y, dst_x, dst_y, width, height);
+#endif
 
 void releaseAllPressedModifiers(void) {
 	int i;
@@ -1547,9 +1553,10 @@ void releaseAllPressedModifiers(void) {
 static void
 HandleBasicDesktopEvent(Widget w, XtPointer ptr, XEvent *ev, Boolean *cont)
 {
-	int i, x, y, width, height;
-	static double last_expose = 0.0;
+	int x, y, width, height;
 	double now = dnow();
+
+	if (w || ptr || cont) {}
 
 	if (0) {
 		PR_EXPOSE;
@@ -2600,7 +2607,9 @@ FillScreen(int x, int y, int width, int height, unsigned long fill)
 	char *scr;
 	int b0, b1, b2;
 
-//fprintf(stderr, "FillImage bpp=%d %04dx%04d+%04d+%04d -- 0x%x\n", bpp, width, height, x, y, fill);
+#if 0
+fprintf(stderr, "FillImage bpp=%d %04dx%04d+%04d+%04d -- 0x%x\n", bpp, width, height, x, y, fill);
+#endif
 	if (appData.chatOnly) {
 		return;
 	}
@@ -2654,7 +2663,9 @@ void copy_rect(int x, int y, int width, int height, int src_x, int src_y) {
 	int Bpl = im->bytes_per_line;
 	int did2 = 0;
 
-//fprintf(stderr, "copy_rect: %04dx%04d+%04d+%04d -- %04d %04d Bpp=%d Bpl=%d\n", width, height, x, y, src_x, src_y, Bpp, Bpl);
+#if 0
+fprintf(stderr, "copy_rect: %04dx%04d+%04d+%04d -- %04d %04d Bpp=%d Bpl=%d\n", width, height, x, y, src_x, src_y, Bpp, Bpl);
+#endif
 	copyrect2:
 
 	if (y < src_y) {
@@ -2717,11 +2728,12 @@ CopyDataToScreen(char *buf, int x, int y, int width, int height)
 		int h;
 		int widthInBytes = width * myFormat.bitsPerPixel / 8;
 		int scrWidthInBytes = si.framebufferWidth * myFormat.bitsPerPixel / 8;
+		char *scr;
 		XImage *im = image_scale ? image_scale : image;
 
 		if (scrWidthInBytes != im->bytes_per_line) scrWidthInBytes = im->bytes_per_line;
 
-		char *scr = (im->data + y * scrWidthInBytes
+		scr = (im->data + y * scrWidthInBytes
 		    + x * myFormat.bitsPerPixel / 8);
 
 		for (h = 0; h < height; h++) {
@@ -2927,7 +2939,6 @@ void ReDoDesktop(void) {
 			fprintf(stderr, "Set -ycrop to: %d\n", appData.yCrop);
 		} else {
 			int w1 = si.framebufferWidth;
-			int w0 = old_width;
 			appData.yCrop = (w1 * appData.yCrop) / old_width;
 			if (appData.yCrop <= 100)  {
 				appData.yCrop = guessCrop();

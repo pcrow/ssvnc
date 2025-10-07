@@ -111,6 +111,7 @@ GetInitialSelectionTimeCallback(Widget w, XtPointer clientData,
 	if (value) {
 		XtFree(value);
 	}
+	if (w || clientData || selection || type || value || length || format) {}
 }
 
 
@@ -155,6 +156,7 @@ SelectionToVNC(Widget w, XEvent *event, String *params, Cardinal *num_params)
 	} else {
 		XtGetSelectionValue(w, sendsel, XInternAtom(dpy, "TIMESTAMP", False), GetSelectionTimeCallback, NULL, TimeFromEvent(event));
 	}
+	if (w || event || params || num_params) {}
 }
 
 
@@ -178,6 +180,7 @@ GetSelectionCallback(Widget w, XtPointer clientData, Atom* selection,
 	} else if (!getenv("VNCVIEWER_NO_CUTBUFFER")) {
 		SendCutBuffer();
 	}
+	if (w || clientData || selection || type || value || length || format) {}
 }
 
 
@@ -213,6 +216,7 @@ GetSelectionTimeCallback(Widget w, XtPointer clientData, Atom* selection,
 	if (value) {
 		XtFree(value);
 	}
+	if (w || clientData || selection || type || value || length || format) {}
 }
 
 
@@ -249,6 +253,7 @@ CutBufferChange(Widget w, XtPointer ptr, XEvent *ev, Boolean *cont)
 	}
 
 	cutBufferTime = ev->xproperty.time;
+	if (w || ptr || cont) {}
 }
 
 
@@ -326,6 +331,7 @@ SelectionFromVNC(Widget w, XEvent *event, String *params, Cardinal *num_params)
 		ClipboardSelectionOwner = True;
 		if (dbg_sel) fprintf(stderr, "Own CLIPBOARD\n");
 	}
+	if (w || event || params || num_params) {}
 }
 
 
@@ -386,4 +392,5 @@ LoseSelection(Widget w, Atom *selection) {
 		if (dbg_sel) fprintf(stderr, "lost CLIPBOARD\n");
   		ClipboardSelectionOwner = False;
 	}
+	if (w) {}
 }

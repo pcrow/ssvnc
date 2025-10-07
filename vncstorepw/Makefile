@@ -37,9 +37,9 @@ $(LIMACC): lim_accept.c
 
 $(ULTDSM): ultravnc_dsm_helper.c 
 	if [ `uname` = "SunOS" ]; then \
-		PATH=$$PATH:$(EPATH) $(CC) -o $(ULTDSM) $(CPP_SSL) ultravnc_dsm_helper.c $(LD_SSL) -lcrypto -lsocket -lnsl; \
+		PATH=$$PATH:$(EPATH) $(CC) -o $(ULTDSM) $(CPP_SSL) ultravnc_dsm_helper.c $(LD_SSL) -lssl -lcrypto -lsocket -lnsl; \
 	else \
-		PATH=$$PATH:$(EPATH) $(CC) -o $(ULTDSM) $(CPP_SSL) ultravnc_dsm_helper.c $(LD_SSL) -lcrypto; \
+		PATH=$$PATH:$(EPATH) $(CC) -o $(ULTDSM) $(CPP_SSL) ultravnc_dsm_helper.c $(LD_SSL) -lssl -lcrypto; \
 	fi
 	PATH=$$PATH:$(EPATH) strip $(ULTDSM)
 	@ls -l $(ULTDSM)

@@ -41,6 +41,7 @@ import java.awt.event.*;
 import java.io.*;
 import java.net.*;
 import javax.swing.*;
+import java.util.Date;
 
 public class VncViewer extends java.applet.Applet
   implements java.lang.Runnable, WindowListener {
@@ -122,6 +123,7 @@ String CONNECT;
 String urlPrefix;
 String httpsPort;
 String oneTimeKey;
+String serverCert;
 String ftpDropDown;
 String proxyHost;
 String proxyPort;
@@ -129,6 +131,10 @@ boolean forceProxy;
 boolean ignoreProxy;
 boolean trustAllVncCerts;
 boolean trustUrlVncCert;
+boolean debugCerts;
+boolean debugKeyboard;
+boolean mapF5_to_atsign;
+boolean forbid_Ctrl_Alt;
 
 boolean ignoreMSLogonCheck;
 boolean delayAuthPanel;
@@ -471,6 +477,7 @@ public void ftp_init() {
      //mslogon support end
     }
 
+    int tries = 0;
     while (true) {
       // Wait for user entering a password, or a username and a password
       synchronized(authenticator) {
@@ -491,7 +498,10 @@ public void ftp_init() {
       //mslogon support end
 
 // begin runge/x11vnc
-	gotAuth = false;
+      gotAuth = false;
+      if (++tries > 2) {
+         throw new Exception("Incorrect password entered " + tries + " times.");
+      }
 // end runge/x11vnc
 
       // Retry on authentication failure.
@@ -904,6 +914,8 @@ System.out.println("as: " + authScheme);
 	fatalError("HOST parameter not specified");
       }
     }
+    Date d = new Date();
+    System.out.println("-\nSSL VNC Java Applet starting.  " + d);
 
     port = 0;
     String str = readParameter("PORT", false);
@@ -1001,7 +1013,12 @@ System.out.println("as: " + authScheme);
 
     oneTimeKey = readParameter("oneTimeKey", false);
     if (oneTimeKey != null) {
-    	System.out.println("oneTimeKey: is set");
+    	System.out.println("oneTimeKey is set.");
+    }
+
+    serverCert = readParameter("serverCert", false);
+    if (serverCert != null) {
+    	System.out.println("serverCert is set.");
     }
 
     forceProxy = false;
@@ -1051,6 +1068,26 @@ System.out.println("as: " + authScheme);
     str = readParameter("trustUrlVncCert", false);
     if (str != null && str.equalsIgnoreCase("Yes")) {
 	trustUrlVncCert = true;
+    }
+    debugCerts = false;
+    str = readParameter("debugCerts", false);
+    if (str != null && str.equalsIgnoreCase("Yes")) {
+	debugCerts = true;
+    }
+    debugKeyboard = false;
+    str = readParameter("debugKeyboard", false);
+    if (str != null && str.equalsIgnoreCase("Yes")) {
+	debugKeyboard = true;
+    }
+    mapF5_to_atsign = false;
+    str = readParameter("mapF5_to_atsign", false);
+    if (str != null && str.equalsIgnoreCase("Yes")) {
+	mapF5_to_atsign = true;
+    }
+    forbid_Ctrl_Alt = false;
+    str = readParameter("forbid_Ctrl_Alt", false);
+    if (str != null && str.equalsIgnoreCase("Yes")) {
+	forbid_Ctrl_Alt = true;
     }
     ignoreMSLogonCheck = false;
     str = readParameter("ignoreMSLogonCheck", false);
