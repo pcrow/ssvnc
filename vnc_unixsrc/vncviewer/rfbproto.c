@@ -120,8 +120,11 @@ int skip_XtUpdate = 0;
 int skip_XtUpdateAll = 0;
 
 static double dt_out = 0.0;
+static double dt_out_sc = 0.0;
 double latency = 0.0;
 double connect_time = 0.0;
+
+void raiseme(int force);
 
 int rfbsock;
 char *desktopName;
@@ -253,11 +256,10 @@ InitCapabilities(void)
 }
 
 static char msgbuf[10000];
-extern void CreateMsg(char *msg, int wait);
 
 static void wmsg(char *msg, int wait) {
 	fprintf(stderr, "%s", msg);
-	if (!isatty(0) && !getenv("SSVNC_NO_MESSAGE_POPUP")) {
+	if (!use_tty() && !getenv("SSVNC_NO_MESSAGE_POPUP")) {
 		CreateMsg(msg, wait);
 	}
 }
@@ -439,7 +441,7 @@ InitialiseRFBConnection(void)
 {
 	rfbProtocolVersionMsg pv;
 	rfbClientInitMsg ci;
-	int i, secType, anon_dh = 0;
+	int i, secType, anon_dh = 0, accept_uvnc = 0;
 	FILE *pd;
 	char *hsfile = NULL;
 	char *hsparam[128];
@@ -631,6 +633,14 @@ InitialiseRFBConnection(void)
 			viewer_minor = 4;
 		}
 	}
+	if (getenv("SSVNC_ACCEPT_POPUP_SC")) {
+		if (server_minor == -4 || server_minor == -6 || server_minor == 14 || server_minor == 16) {
+			/* 4 and 6 work too? */
+			viewer_minor = server_minor;
+			accept_uvnc = 1;
+			fprintf(stderr,"Reset RFB version to 3.%d for UltraVNC SSVNC_ACCEPT_POPUP_SC.\n\n", viewer_minor);
+		}
+	}
 
 	fprintf(stderr, "Connected to RFB server, using protocol version %d.%d\n", viewer_major, viewer_minor);
 
@@ -685,16 +695,69 @@ InitialiseRFBConnection(void)
 		}
 	}
 
+	if (accept_uvnc) {
+		unsigned int msg_sz = 0;
+		unsigned int nimmer = 0;
+		char msg[3000];
+		char *msg_buf, *sip = NULL, *sih = NULL;
+
+		if (!ReadFromRFBServer((char *) &msg_sz, 4)) {
+			return False;
+		}
+		dt_out_sc = dnow();
+		msg_sz = Swap32IfBE(msg_sz);
+		if (msg_sz < 0 || msg_sz > 1024) {
+			fprintf(stderr, "UVNC msg size too big: %d\n", msg_sz);
+			exit(1);
+		}
+		msg_buf = (char *)calloc(msg_sz + 100, 1);
+		if (!ReadFromRFBServer(msg_buf, msg_sz)) {
+			return False;
+		}
+
+		if (0) {
+			fprintf(stderr, "msg_buf: ");
+			write(2, msg_buf, msg_sz);
+			fprintf(stderr, "\n");
+		}
+
+		sip = get_peer_ip(rfbsock);
+		if (strlen(sip) > 100) sip = "0.0.0.0";
+		sih = ip2host(sip);
+		if (strlen(sih) > 300) sih = "unknown";
+
+		sprintf(msg, "\n(LISTEN) Reverse VNC connection from IP: %s\n                               Hostname: %s\n\n", sip, sih);
+		strcat(msg, "UltraVNC Server Message:\n");
+		strcat(msg, msg_buf);
+		free(msg_buf);
+		strcat(msg, "\n\n");
+		strcat(msg, "Accept or Reject VNC connection?");
+		if (CreateMsg(msg, 2)) {
+			nimmer = 1;
+			fprintf(stderr, "Accepting connection.\n\n");
+		} else {
+			nimmer = 0;
+			fprintf(stderr, "Refusing connection.\n\n");
+		}
+		if (!WriteExact(rfbsock, (char *) &nimmer, 4)) {
+			return False;
+		}
+	}
+
 	/* Read or select the security type. */
 	dt_out = 0.0;
 
 	skip_XtUpdateAll = 1;
-	if (viewer_minor >= 7) {
+	if (viewer_minor >= 7 && !accept_uvnc) {
 		secType = SelectSecurityType();
 	} else {
 		secType = ReadSecurityType();
 	}
 	skip_XtUpdateAll = 0;
+
+	if (accept_uvnc) {
+		dt_out = dt_out_sc;
+	}
 
 	if (dt > 0.0 && dt_out > dt) {
 		latency = (dt_out - dt) * 1000;
@@ -1104,6 +1167,7 @@ static Bool old_ultravnc_mslogon_code(void) {
 	/* code from the old uvnc way (1.0.2?) that would go into AuthenticateVNC() template */
 	
 	if (appData.msLogon != NULL) {
+		raiseme(1);
 		if (!strcmp(appData.msLogon, "1")) {
 			char tmp[256];
 			fprintf(stderr, "\nUltraVNC MS Logon Username[@Domain]: ");
@@ -1306,14 +1370,14 @@ static Bool AuthUltraVncMsLogon(void) {
 		char tmp[10000];
 		tmp[0] = '\0';
 		strcat(tmp, "\n");
-		strcat(tmp, "WARNING: The UltraVNC Diffie-Hellman Key is short (key < 2e+9, i.e. 31 bits)\n");
+		strcat(tmp, "WARNING: The UltraVNC Diffie-Hellman Key is weak (key < 2e+9, i.e. 31 bits)\n");
 		strcat(tmp, "WARNING: and so an eavesdropper could recover your MS-Logon username and\n");
-		strcat(tmp, "WARNING: password via brute force in a few hours to a few seconds of CPU time\n");
-		strcat(tmp, "WARNING: depending on the method used.  If this connection is not being\n");
-		strcat(tmp, "WARNING: tunnelled through a separate SSL or SSH encrypted tunnel, consider\n");
-		strcat(tmp, "WARNING: things carefully before proceeding...  Do not enter an important\n");
-		strcat(tmp, "WARNING: username+password when prompted below if there is a risk of an\n");
-		strcat(tmp, "WARNING: eavesdropper sniffing this connection.  You've been warned!\n");
+		strcat(tmp, "WARNING: password via brute force in a few seconds of CPU time. \n");
+		strcat(tmp, "WARNING: If this connection is NOT being tunnelled through a separate SSL or\n");
+		strcat(tmp, "WARNING: SSH encrypted tunnel, consider things carefully before proceeding...\n");
+		strcat(tmp, "WARNING: Do not enter an important username+password when prompted below if\n");
+		strcat(tmp, "WARNING: there is a risk of an eavesdropper sniffing this connection.\n");
+		strcat(tmp, "WARNING: UltraVNC MSLogon encryption is VERY weak.  You've been warned!\n");
 		wmsg(tmp, 1);
 	}
 
@@ -1321,10 +1385,12 @@ static Bool AuthUltraVncMsLogon(void) {
 
 	if (appData.msLogon == NULL || !strcmp(appData.msLogon, "1")) {
 		char tmp[256], *q, *s;
-		fprintf(stderr, "\nUltraVNC MS-Logon Username[@Domain]: ");
-		if (!isatty(0)) {
+		if (!use_tty()) {
+			fprintf(stderr, "\nEnter UltraVNC MS-Logon Username[@Domain] in the popup.\n");
 			s = DoUserDialog(); 
 		} else {
+			raiseme(1);
+			fprintf(stderr, "\nUltraVNC MS-Logon Username[@Domain]: ");
 			if (fgets(tmp, 256, stdin) == NULL) {
 				exit(1);
 			}
@@ -1335,9 +1401,10 @@ static Bool AuthUltraVncMsLogon(void) {
 		appData.msLogon = strdup(s);
 	}
 
-	if (!isatty(0)) {
+	if (!use_tty()) {
 		gpw = DoPasswordDialog(); 
 	} else {
+		raiseme(1);
 		gpw = getpass("UltraVNC MS-Logon Password: ");
 	}
 	if (! gpw) {
@@ -1448,6 +1515,7 @@ AuthenticateVNC(void)
 		}
 	} else if (appData.autoPass) {
 		passwd = buffer;
+		raiseme(1);
 		cstatus = fgets(buffer, sizeof buffer, stdin);
 		if (cstatus == NULL) {
 			buffer[0] = '\0';
@@ -1459,9 +1527,10 @@ AuthenticateVNC(void)
 		}
 	} else if (getenv("VNCVIEWER_PASSWORD")) {
 		passwd = strdup(getenv("VNCVIEWER_PASSWORD"));
-	} else if (appData.passwordDialog) {
+	} else if (appData.passwordDialog || !use_tty()) {
 		passwd = DoPasswordDialog();
 	} else {
+		raiseme(1);
 		passwd = getpass("VNC Password: ");
 	}
 
@@ -1553,9 +1622,10 @@ AuthenticateUnixLogin(void)
 
 	fprintf(stderr, "Using user name \"%s\"\n", login);
 
-	if (appData.passwordDialog) {
+	if (appData.passwordDialog || !use_tty()) {
 		passwd = DoPasswordDialog();
 	} else {
+		raiseme(1);
 		passwd = getpass("VNC Password: ");
 	}
 	if (!passwd || strlen(passwd) == 0) {
@@ -1752,6 +1822,17 @@ SetFormatAndEncodings()
   if (appData.encodingsString) {
     char *encStr = appData.encodingsString;
     int encStrLen;
+	if (strchr(encStr, ','))  {
+		char *p;
+		encStr = strdup(encStr);
+		p = encStr;
+		while (*p != '\0') {
+			if (*p == ',') {
+				*p = ' ';
+			}
+			p++;
+		}
+	}
     do {
       char *nextEncStr = strchr(encStr, ' ');
       if (nextEncStr) {

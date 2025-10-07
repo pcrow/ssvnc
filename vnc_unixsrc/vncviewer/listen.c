@@ -41,6 +41,77 @@ static void getFlashFont(Display *d);
 static void flashDisplay(Display *d, char *user);
 static Bool AllXEventsPredicate(Display *d, XEvent *ev, char *arg);
 
+void raiseme(int force);
+
+static int accept_popup_check(int *argc, char **argv, char *sip, char *sih) {
+	char line[16];
+	char msg[1000];
+	int dopopup = 1;
+
+	if (!getenv("SSVNC_ACCEPT_POPUP")) {
+		return 1;
+	}
+	
+	if (!dopopup && use_tty()) {
+		raiseme(1);
+		fprintf(stderr, "Accept VNC connection? y/[n] ");
+		fgets(line, sizeof(line), stdin);
+		if (!strchr(line, 'y') && !strchr(line, 'Y')) {
+			fprintf(stderr, "Refusing connection.\n");
+			return 0;
+		} else {
+			fprintf(stderr, "Accepting connection.\n");
+			return 1;
+		}
+	} else {
+		int pid, pid2, accept_it = 0;
+
+		pid = fork();
+		if (pid == -1) {
+			perror("fork"); 
+			exit(1);
+		}
+		if (pid == 0) {
+			char *geometry = "2x2+0+0";
+			String fb[] = { "*message.Scroll: whenNeeded", NULL};
+			close(rfbsock);
+
+			toplevel = XtAppInitialize(&appContext, "Ssvnc", cmdLineOptions, numCmdLineOptions,
+			    argc, argv, fb, NULL, 0);
+			XtVaSetValues(toplevel, XtNmaxWidth, 2, XtNmaxHeight, 2, NULL);
+			XtVaSetValues(toplevel, XtNgeometry, geometry, NULL);
+			XtRealizeWidget(toplevel);
+			dpy = XtDisplay(toplevel);
+			sprintf(msg, "\n(LISTEN) Reverse VNC connection from IP: %s\n                               Hostname: %s\n\n", sip, sih);
+			strcat(msg, "Accept or Reject VNC connection?");
+			if (CreateMsg(msg, 2)) {
+				XCloseDisplay(dpy);
+				exit(0);
+			} else {
+				XCloseDisplay(dpy);
+				exit(1);
+			}
+		} else {
+			int status;
+			pid2 = waitpid(pid, &status, 0);
+			fprintf(stderr, "waitpid: %d/%d status: %d\n", pid, pid2, status);
+			if (pid2 == pid) {
+				if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+					accept_it = 1;
+				}
+			}
+		}
+		if (accept_it) {
+			fprintf(stderr, "Accepting connection.\n");
+			return 1;
+		} else {
+			fprintf(stderr, "Refusing connection.\n");
+			return 0;
+		}
+	}
+	return 0;
+}
+
 /*
  * listenForIncomingConnections() - listen for incoming connections from
  * servers, and fork a new process to deal with each connection.  We must do
@@ -189,6 +260,8 @@ listenForIncomingConnections(int *argc, char **argv, int listenArgIndex)
     if (FD_ISSET(listenSocket, &fds)) {
 	int multi_ok = 0;
 	char *sml = getenv("SSVNC_MULTIPLE_LISTEN");
+	char *sip = NULL;
+	char *sih = NULL;
 
 	rfbsock = AcceptTcpConnection(listenSocket);
 
@@ -225,6 +298,22 @@ listenForIncomingConnections(int *argc, char **argv, int listenArgIndex)
 		rfbsock = -1;
 		continue;
 	}
+
+	sip = get_peer_ip(rfbsock);
+	if (strlen(sip) > 100) sip = "0.0.0.0";
+	sih = ip2host(sip);
+	if (strlen(sih) > 300) sih = "unknown";
+
+	fprintf(stderr, "\n");
+	fprintf(stderr, "(LISTEN) Reverse VNC connection from IP: %s\n", sip);
+	fprintf(stderr, "                               Hostname: %s\n\n", sih);
+
+	if (sml == NULL && !accept_popup_check(argc, argv, sip, sih)) {
+		close(rfbsock);
+		rfbsock = -1;
+		continue;
+	}
+
 	totalconn++;
 
       XCloseDisplay(d);
@@ -241,6 +330,11 @@ listenForIncomingConnections(int *argc, char **argv, int listenArgIndex)
 	/* child - return to caller */
 	close(listenSocket);
 //	close(flashSocket);
+	if (sml != NULL && !accept_popup_check(argc, argv, sip, sih)) {
+		close(rfbsock);
+		rfbsock = -1;
+		exit(0);
+	}
 	return;
 
       default:

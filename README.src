@@ -152,7 +152,7 @@ To change the destination set the PREFIX=/path on the make cmd line, e.g.:
 	make PREFIX=/tmp/ssvnc  install
 	make PREFIX=/usr install
 
-Include MANDIR=share/man/man1 to install the man pages into
+Include MANDIR=share/man to install the man pages into
 $(PREFIX)/share/man instead of simply $(PREFIX)/man
 
 This 'ssvncviewer' binary installed in bin is a peer to ones like

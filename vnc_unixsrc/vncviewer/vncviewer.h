@@ -52,6 +52,12 @@ extern int endianTest;
 			     (((l) & 0x0000ff00) << 8)  | \
 			     (((l) & 0x000000ff) << 24))  : (l))
 
+#define Swap32IfBE(l) \
+    (*(char *)&endianTest ? (l) : ((((l) & 0xff000000) >> 24) | \
+			     (((l) & 0x00ff0000) >> 8)  | \
+			     (((l) & 0x0000ff00) << 8)  | \
+			     (((l) & 0x000000ff) << 24)) )
+
 #define MAX_ENCODINGS 24
 
 #define FLASH_PORT_OFFSET 5400
@@ -122,10 +128,12 @@ typedef struct {
 	char *msLogon;
 	char *repeaterUltra;
 	Bool ultraDSM;
+	Bool acceptPopup;
 	char *rfbVersion;
 
 	char *passwordFile;
 	Bool passwordDialog;
+	Bool notty;
 
 	int rawDelay;
 	int copyRectDelay;
@@ -240,6 +248,8 @@ extern void fs_ungrab(int check);
 
 /* dialogs.c */
 
+extern int use_tty(void);
+
 extern void ScaleDialogDone(Widget w, XEvent *event, String *params,
 			     Cardinal *num_params);
 extern char *DoScaleDialog();
@@ -345,6 +355,8 @@ extern void CreateCompress();
 
 extern void Noop(Widget w, XEvent *event, String *params,
 		      Cardinal *num_params);
+
+extern int CreateMsg(char *msg, int wait);
 /* rfbproto.c */
 
 extern int rfbsock;
@@ -410,6 +422,8 @@ extern Bool SetNoDelay(int sock);
 extern Bool SocketPair(int fd[2]);
 
 extern int StringToIPAddr(const char *str, unsigned int *addr);
+extern char *get_peer_ip(int sock);
+extern char *ip2host(char *ip);
 extern Bool SameMachine(int sock);
 
 /* tunnel.c */
@@ -436,6 +450,7 @@ extern void Toggle64Colors(Widget w, XEvent *ev, String *params, Cardinal *num_p
 extern void Toggle8Colors(Widget w, XEvent *ev, String *params, Cardinal *num_params);
 extern void ToggleGreyScale(Widget w, XEvent *ev, String *params, Cardinal *num_params);
 extern void ToggleTightZRLE(Widget w, XEvent *ev, String *params, Cardinal *num_params);
+extern void ToggleTightHextile(Widget w, XEvent *ev, String *params, Cardinal *num_params);
 extern void ToggleZRLEZYWRLE(Widget w, XEvent *ev, String *params, Cardinal *num_params);
 extern void ToggleViewOnly(Widget w, XEvent *ev, String *params, Cardinal *num_params);
 extern void ToggleJPEG(Widget w, XEvent *ev, String *params, Cardinal *num_params);
@@ -485,6 +500,7 @@ extern void Set64ColorsState(Widget w, XEvent *ev, String *params, Cardinal *num
 extern void Set8ColorsState(Widget w, XEvent *ev, String *params, Cardinal *num_params);
 extern void SetGreyScaleState(Widget w, XEvent *ev, String *params, Cardinal *num_params);
 extern void SetZRLEState(Widget w, XEvent *ev, String *params, Cardinal *num_params);
+extern void SetHextileState(Widget w, XEvent *ev, String *params, Cardinal *num_params);
 extern void SetZYWRLEState(Widget w, XEvent *ev, String *params, Cardinal *num_params);
 extern void SetCursorShapeState(Widget w, XEvent *ev, String *params, Cardinal *num_params);
 extern void SetCursorAlphaState(Widget w, XEvent *ev, String *params, Cardinal *num_params);

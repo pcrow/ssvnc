@@ -123,6 +123,8 @@ String urlPrefix;
 String httpsPort;
 String oneTimeKey;
 String ftpDropDown;
+String proxyHost;
+String proxyPort;
 boolean forceProxy;
 boolean ignoreProxy;
 boolean trustAllVncCerts;
@@ -1003,15 +1005,43 @@ System.out.println("as: " + authScheme);
     }
 
     forceProxy = false;
+    proxyHost = null;
+    proxyPort = null;
     str = readParameter("forceProxy", false);
-    if (str != null && str.equalsIgnoreCase("Yes")) {
-	forceProxy = true;
+    if (str != null) {
+	    if (str.equalsIgnoreCase("Yes")) {
+		forceProxy = true;
+	    } else if (str.equalsIgnoreCase("No")) {
+		forceProxy = false;
+	    } else {
+		forceProxy = true;
+		String[] pieces = str.split(" ");
+		proxyHost = new String(pieces[0]);
+		if (pieces.length >= 2) {
+			proxyPort = new String(pieces[1]);
+		} else {
+			proxyPort = new String("8080");
+		}
+	    }
     }
+    str = readParameter("proxyHost", false);
+    if (str != null) {
+	proxyHost = new String(str);
+    }
+    str = readParameter("proxyPort", false);
+    if (str != null) {
+	proxyPort = new String(str);
+    }
+    if (proxyHost != null && proxyPort == null) {
+    	proxyPort = new String("8080");
+    }
+
     ignoreProxy = false;
     str = readParameter("ignoreProxy", false);
     if (str != null && str.equalsIgnoreCase("Yes")) {
 	ignoreProxy = true;
     }
+
     trustAllVncCerts = false;
     str = readParameter("trustAllVncCerts", false);
     if (str != null && str.equalsIgnoreCase("Yes")) {

@@ -107,11 +107,13 @@ char *fallback_resources[] = {
 
   "*serverDialog.dialog.label: VNC server:",
   "*serverDialog.dialog.value:",
+  "*serverDialog.dialog.value.width: 150",
   "*serverDialog.dialog.value.translations: #override\\n\
      <Key>Return: ServerDialogDone()",
 
-  "*userDialog.dialog.label: Username:",
+  "*userDialog.dialog.label: SSVNC: Enter Username",
   "*userDialog.dialog.value:",
+  "*userDialog.dialog.value.width: 150",
   "*userDialog.dialog.value.translations: #override\\n\
      <Key>Return: UserDialogDone()",
 
@@ -184,8 +186,9 @@ char *fallback_resources[] = {
   "*scaleNDialog.dialog.value.translations: #override\\n\
      <KeyRelease>Return: ScaleNDialogDone()",
 
-  "*passwordDialog.dialog.label: Password:",
+  "*passwordDialog.dialog.label: SSVNC: Enter Password",
   "*passwordDialog.dialog.value:",
+  "*passwordDialog.dialog.value.width: 150",
   "*passwordDialog.dialog.value.AsciiSink.echo: False",
   "*passwordDialog.dialog.value.translations: #override\\n\
      <Key>Return: PasswordDialogDone()",
@@ -225,8 +228,8 @@ char *fallback_resources[] = {
   "*popup.buttonForm.translations: #override\\n\
      <KeyPress>: SendRFBEvent() HidePopup()",
 
-  "*popupButtonCount: 42",
-  "*popupButtonBreak: 21",
+  "*popupButtonCount: 44",
+  "*popupButtonBreak: 22",
 
   "*popup*button1.label: Dismiss popup",
   "*popup*button1.translations: #override\\n\
@@ -301,155 +304,163 @@ char *fallback_resources[] = {
      <Visible>: SetCursorAlphaState()\\n\
      <Btn1Down>,<Btn1Up>: toggle() ToggleCursorAlpha() HidePopup()",
 
-  "*popup*button15.label: Toggle Tight/ZRLE",
+  "*popup*button15.label: Toggle Tight/Hextile",
   "*popup*button15.type: toggle",
   "*popup*button15.translations: #override\\n\
+     <Visible>: SetHextileState()\\n\
+     <Btn1Down>,<Btn1Up>: toggle() ToggleTightHextile() HidePopup()",
+
+  "*popup*button16.label: Toggle Tight/ZRLE",
+  "*popup*button16.type: toggle",
+  "*popup*button16.translations: #override\\n\
      <Visible>: SetZRLEState()\\n\
      <Btn1Down>,<Btn1Up>: toggle() ToggleTightZRLE() HidePopup()",
 
-  "*popup*button16.label: Toggle ZRLE/ZYWRLE",
-  "*popup*button16.type: toggle",
-  "*popup*button16.translations: #override\\n\
+  "*popup*button17.label: Toggle ZRLE/ZYWRLE",
+  "*popup*button17.type: toggle",
+  "*popup*button17.translations: #override\\n\
      <Visible>: SetZYWRLEState()\\n\
      <Btn1Down>,<Btn1Up>: toggle() ToggleZRLEZYWRLE() HidePopup()",
 
-  "*popup*button17.label: Quality Level",
-  "*popup*button17.translations: #override\\n\
+  "*popup*button18.label: Quality Level",
+  "*popup*button18.translations: #override\\n\
      <Btn1Down>,<Btn1Up>: HidePopup() ShowQuality()",
 
-  "*popup*button18.label: Compress Level",
-  "*popup*button18.translations: #override\\n\
+  "*popup*button19.label: Compress Level",
+  "*popup*button19.translations: #override\\n\
      <Btn1Down>,<Btn1Up>: HidePopup() ShowCompress()",
 
-  "*popup*button19.label: Disable JPEG",
-  "*popup*button19.type: toggle",
-  "*popup*button19.translations: #override\\n\
+  "*popup*button20.label: Disable JPEG",
+  "*popup*button20.type: toggle",
+  "*popup*button20.translations: #override\\n\
      <Visible>: SetNOJPEGState()\\n\
      <Btn1Down>,<Btn1Up>: toggle() ToggleJPEG() HidePopup()",
 
-  "*popup*button20.label: TurboVNC Settings",
-  "*popup*button20.translations: #override\\n\
+  "*popup*button21.label: TurboVNC Settings",
+  "*popup*button21.translations: #override\\n\
      <Btn1Down>,<Btn1Up>: HidePopup() ShowTurboVNC()",
 
-  "*popup*button21.label: Pipeline Updates",
-  "*popup*button21.type: toggle",
-  "*popup*button21.translations: #override\\n\
+  "*popup*button22.label: Pipeline Updates",
+  "*popup*button22.type: toggle",
+  "*popup*button22.translations: #override\\n\
      <Visible>: SetPipelineUpdates()\\n\
      <Btn1Down>,<Btn1Up>: toggle() TogglePipelineUpdates() HidePopup()",
 
-  "*popup*button22.label: Full Color",
-  "*popup*button22.type: toggle",
-  "*popup*button22.translations: #override\\n\
+  "*popup*button23.label: Full Color",
+  "*popup*button23.type: toggle",
+  "*popup*button23.translations: #override\\n\
      <Visible>: SetFullColorState()\\n\
      <Btn1Down>,<Btn1Up>: toggle() ToggleFullColor() HidePopup()",
 
-  "*popup*button23.label: Grey Scale (16 & 8-bpp)",
-  "*popup*button23.type: toggle",
-  "*popup*button23.translations: #override\\n\
+  "*popup*button24.label: Grey Scale (16 & 8-bpp)",
+  "*popup*button24.type: toggle",
+  "*popup*button24.translations: #override\\n\
      <Visible>: SetGreyScaleState()\\n\
      <Btn1Down>,<Btn1Up>: toggle() ToggleGreyScale() HidePopup()",
 
-  "*popup*button24.label: 16 bit color (BGR565)",
-  "*popup*button24.type: toggle",
-  "*popup*button24.translations: #override\\n\
+  "*popup*button25.label: 16 bit color (BGR565)",
+  "*popup*button25.type: toggle",
+  "*popup*button25.translations: #override\\n\
      <Visible>: Set16bppState()\\n\
      <Btn1Down>,<Btn1Up>: toggle() Toggle16bpp() HidePopup()",
 
-  "*popup*button25.label: 8   bit color (BGR233)",
-  "*popup*button25.type: toggle",
-  "*popup*button25.translations: #override\\n\
+  "*popup*button26.label: 8   bit color (BGR233)",
+  "*popup*button26.type: toggle",
+  "*popup*button26.translations: #override\\n\
      <Visible>: Set8bppState()\\n\
      <Btn1Down>,<Btn1Up>: toggle() Toggle8bpp() HidePopup()",
 
-  "*popup*button26.label: -     256 colors",
-  "*popup*button26.type: toggle",
-  "*popup*button26.translations: #override\\n\
+  "*popup*button27.label: -     256 colors",
+  "*popup*button27.type: toggle",
+  "*popup*button27.translations: #override\\n\
      <Visible>: Set256ColorsState()\\n\
      <Btn1Down>,<Btn1Up>: toggle() Toggle256Colors() HidePopup()",
 
-  "*popup*button27.label: -       64 colors",
-  "*popup*button27.type: toggle",
-  "*popup*button27.translations: #override\\n\
+  "*popup*button28.label: -       64 colors",
+  "*popup*button28.type: toggle",
+  "*popup*button28.translations: #override\\n\
      <Visible>: Set64ColorsState()\\n\
      <Btn1Down>,<Btn1Up>: toggle() Toggle64Colors() HidePopup()",
 
-  "*popup*button28.label: -         8 colors",
-  "*popup*button28.type: toggle",
-  "*popup*button28.translations: #override\\n\
+  "*popup*button29.label: -         8 colors",
+  "*popup*button29.type: toggle",
+  "*popup*button29.translations: #override\\n\
      <Visible>: Set8ColorsState()\\n\
      <Btn1Down>,<Btn1Up>: toggle() Toggle8Colors() HidePopup()",
 
-  "*popup*button29.label: Scale Viewer",
-  "*popup*button29.translations: #override\\n\
+  "*popup*button30.label: Scale Viewer",
+  "*popup*button30.translations: #override\\n\
      <Btn1Down>,<Btn1Up>: HidePopup() SetScale()",
 
-  "*popup*button30.label: Escape Keys: Toggle",
-  "*popup*button30.type: toggle",
-  "*popup*button30.translations: #override\\n\
+  "*popup*button31.label: Escape Keys: Toggle",
+  "*popup*button31.type: toggle",
+  "*popup*button31.translations: #override\\n\
      <Visible>: SetEscapeKeysState()\\n\
      <Btn1Down>, <Btn1Up>: toggle() ToggleEscapeActive() HidePopup()",
 
-  "*popup*button31.label: Escape Keys: Help+Set",
-  "*popup*button31.translations: #override\\n\
+  "*popup*button32.label: Escape Keys: Help+Set",
+  "*popup*button32.translations: #override\\n\
       <Btn1Down>, <Btn1Up>: HidePopup() SetEscapeKeys()",
 
-  "*popup*button32.label: Set Y Crop (y-max)",
-  "*popup*button32.translations: #override\\n\
+  "*popup*button33.label: Set Y Crop (y-max)",
+  "*popup*button33.translations: #override\\n\
      <Btn1Down>,<Btn1Up>: HidePopup() SetYCrop()",
 
-  "*popup*button33.label: Set Scrollbar Width",
-  "*popup*button33.translations: #override\\n\
+  "*popup*button34.label: Set Scrollbar Width",
+  "*popup*button34.translations: #override\\n\
      <Btn1Down>,<Btn1Up>: HidePopup() SetScbar()",
 
-  "*popup*button34.label: XGrabServer",
-  "*popup*button34.type: toggle",
-  "*popup*button34.translations: #override\\n\
+  "*popup*button35.label: XGrabServer",
+  "*popup*button35.type: toggle",
+  "*popup*button35.translations: #override\\n\
      <Visible>: SetXGrabState()\\n\
      <Btn1Down>,<Btn1Up>: toggle() ToggleXGrab() HidePopup()",
 
-  "*popup*button35.label: UltraVNC Extensions:",
-  "*popup*button35.translations: #override\\n\
+  "*popup*button36.label: UltraVNC Extensions:",
+  "*popup*button36.translations: #override\\n\
      <Btn1Down>,<Btn1Up>: HidePopup()",
 
-  "*popup*button36.label: - Set 1/n Server Scale",
-  "*popup*button36.translations: #override\\n\
+  "*popup*button37.label: - Set 1/n Server Scale",
+  "*popup*button37.translations: #override\\n\
      <Btn1Down>,<Btn1Up>: HidePopup() ShowScaleN()",
 
-  "*popup*button37.label: - Text Chat",
-  "*popup*button37.type: toggle",
-  "*popup*button37.translations: #override\\n\
+  "*popup*button38.label: - Text Chat",
+  "*popup*button38.type: toggle",
+  "*popup*button38.translations: #override\\n\
      <Visible>: SetTextChatState()\\n\
      <Btn1Down>,<Btn1Up>: toggle() ToggleTextChat() HidePopup()",
 
-  "*popup*button38.label: - File Transfer",
-  "*popup*button38.type: toggle",
-  "*popup*button38.translations: #override\\n\
+  "*popup*button39.label: - File Transfer",
+  "*popup*button39.type: toggle",
+  "*popup*button39.translations: #override\\n\
      <Visible>: SetFileXferState()\\n\
      <Btn1Down>,<Btn1Up>: toggle() ToggleFileXfer() HidePopup()",
 
-  "*popup*button39.label: - Single Window",
-  "*popup*button39.type: toggle",
-  "*popup*button39.translations: #override\\n\
+  "*popup*button40.label: - Single Window",
+  "*popup*button40.type: toggle",
+  "*popup*button40.translations: #override\\n\
      <Visible>: SetSingleWindowState()\\n\
      <Btn1Down>,<Btn1Up>: toggle() ToggleSingleWindow() HidePopup()",
 
-  "*popup*button40.label: - Disable Remote Input",
-  "*popup*button40.type: toggle",
-  "*popup*button40.translations: #override\\n\
+  "*popup*button41.label: - Disable Remote Input",
+  "*popup*button41.type: toggle",
+  "*popup*button41.translations: #override\\n\
      <Visible>: SetServerInputState()\\n\
      <Btn1Down>,<Btn1Up>: toggle() ToggleServerInput() HidePopup()",
 
-  "*popup*button41.label: Send Clipboard not Primary",
-  "*popup*button41.type: toggle",
-  "*popup*button41.translations: #override\\n\
+  "*popup*button42.label: Send Clipboard not Primary",
+  "*popup*button42.type: toggle",
+  "*popup*button42.translations: #override\\n\
      <Visible>: SetSendClipboard()\\n\
      <Btn1Down>,<Btn1Up>: toggle() ToggleSendClipboard() HidePopup()",
 
-  "*popup*button42.label: Send Selection Every time",
-  "*popup*button42.type: toggle",
-  "*popup*button42.translations: #override\\n\
+  "*popup*button43.label: Send Selection Every time",
+  "*popup*button43.type: toggle",
+  "*popup*button43.translations: #override\\n\
      <Visible>: SetSendAlways()\\n\
      <Btn1Down>,<Btn1Up>: toggle() ToggleSendAlways() HidePopup()",
+
+  "*popup*button44.label: ",
 
   "*turboVNC*button0.label: Dismiss",
   "*turboVNC*button0.translations: #override\\n\
@@ -722,6 +733,9 @@ static XtResource appDataResourceList[] = {
   {"ultraDSM", "UltraDSM", XtRBool, sizeof(Bool),
    XtOffsetOf(AppData, ultraDSM), XtRImmediate, (XtPointer) False},
 
+  {"acceptPopup", "AcceptPopup", XtRBool, sizeof(Bool),
+   XtOffsetOf(AppData, acceptPopup), XtRImmediate, (XtPointer) False},
+
   {"rfbVersion", "RfbVersion", XtRString, sizeof(String),
    XtOffsetOf(AppData, rfbVersion), XtRImmediate, (XtPointer) 0},
 
@@ -813,6 +827,9 @@ static XtResource appDataResourceList[] = {
 
   {"useRawLocal", "UseRawLocal", XtRBool, sizeof(Bool),
    XtOffsetOf(AppData, useRawLocal), XtRImmediate, (XtPointer) False},
+
+  {"notty", "NoTty", XtRBool, sizeof(Bool),
+   XtOffsetOf(AppData, notty), XtRImmediate, (XtPointer) False},
 
   {"useX11Cursor", "UseX11Cursor", XtRBool, sizeof(Bool),
    XtOffsetOf(AppData, useX11Cursor), XtRImmediate, (XtPointer) False},
@@ -907,6 +924,8 @@ XrmOptionDescRec cmdLineOptions[] = {
   {"-mslogon",       "*msLogon",            XrmoptionSepArg, 0},
   {"-repeater",      "*repeaterUltra",      XrmoptionSepArg, 0},
   {"-ultradsm",      "*ultraDSM",           XrmoptionNoArg,  "True"},
+  {"-acceptpopup",   "*acceptPopup",        XrmoptionNoArg,  "True"},
+  {"-acceptpopupsc", "*acceptPopup",        XrmoptionNoArg,  "True"},
   {"-rfbversion",    "*rfbVersion",         XrmoptionSepArg, 0},
   {"-encodings",     "*encodings",          XrmoptionSepArg, 0},
   {"-bgr233",        "*useBGR233",          XrmoptionNoArg,  "256"},
@@ -922,6 +941,7 @@ XrmOptionDescRec cmdLineOptions[] = {
   {"-env",           "*envDummy",           XrmoptionSepArg, 0},
   {"-ycrop",         "*yCrop",              XrmoptionSepArg, 0},
   {"-rawlocal",      "*useRawLocal",        XrmoptionNoArg,  "True"},
+  {"-notty",         "*notty",              XrmoptionNoArg,  "True"},
   {"-alpha",         "*useCursorAlpha",     XrmoptionNoArg,  "True"},
   {"-owncmap",       "*forceOwnCmap",       XrmoptionNoArg,  "True"},
   {"-truecolor",     "*forceTrueColour",    XrmoptionNoArg,  "True"},
@@ -998,6 +1018,7 @@ static XtActionsRec actions[] = {
     {"Toggle8Colors", Toggle8Colors},
     {"ToggleGreyScale", ToggleGreyScale},
     {"ToggleTightZRLE", ToggleTightZRLE},
+    {"ToggleTightHextile", ToggleTightHextile},
     {"ToggleZRLEZYWRLE", ToggleZRLEZYWRLE},
     {"ToggleViewOnly", ToggleViewOnly},
     {"ToggleJPEG", ToggleJPEG},
@@ -1034,6 +1055,7 @@ static XtActionsRec actions[] = {
     {"Set8ColorsState", Set8ColorsState},
     {"SetGreyScaleState", SetGreyScaleState},
     {"SetZRLEState", SetZRLEState},
+    {"SetHextileState", SetHextileState},
     {"SetZYWRLEState", SetZYWRLEState},
     {"SetNOJPEGState", SetNOJPEGState},
     {"SetScaleNState", SetScaleNState},
@@ -1102,7 +1124,7 @@ usage(void)
 	  "        -noraiseonbeep\n"
 	  "        -passwd <PASSWD-FILENAME> (standard VNC authentication)\n"
 	  "        -user <USERNAME> (Unix login authentication)\n"
-	  "        -encodings <ENCODING-LIST> (e.g. \"tight copyrect\")\n"
+	  "        -encodings <ENCODING-LIST> (e.g. \"tight,copyrect\")\n"
 	  "        -bgr233\n"
 	  "        -owncmap\n"
 	  "        -truecolour\n"
@@ -1153,6 +1175,16 @@ usage(void)
 	  "                    time tries to play it safe by not allowing anyone on\n"
 	  "                    the network to put (many) desktops on your screen over\n"
 	  "                    a long window of time. Use -multilisten for no limit.\n"
+	  "\n"
+	  "        -acceptpopup  In -listen (reverse connection listening) mode when\n"
+	  "                    a reverse VNC connection comes in show a popup asking\n"
+	  "                    whether to Accept or Reject the connection.  The IP\n"
+	  "                    address of the connecting host is shown.  Same as\n"
+	  "                    setting the env. var. SSVNC_ACCEPT_POPUP=1.\n"
+	  "\n"
+	  "        -acceptpopupsc  As in -acceptpopup except assume UltraVNC Single\n"
+	  "                    Click (SC) server.  Retrieve User and ComputerName\n"
+	  "                    info from UltraVNC Server and display in the Popup.\n"
 	  "\n"
 	  "        -use64      In -bgr233 mode, use 64 colors instead of 256.\n"
 	  "        -bgr222     Same as -use64.\n"
@@ -1213,6 +1245,30 @@ usage(void)
 	  "        -rawlocal   Prefer raw encoding for localhost, default is\n"
 	  "                    no, i.e. assumes you have a SSH tunnel instead.\n"
 	  "\n"
+	  "        -notty      Try to avoid using the terminal for interactive\n"
+	  "                    responses: use windows for messages and prompting\n"
+	  "                    instead.  Messages will also be printed to terminal.\n"
+	  "\n"
+	  "        -sendclipboard  Send the X CLIPBOARD selection (i.e. Ctrl+C,\n"
+	  "                        Ctrl+V) instead of the X PRIMARY selection (mouse\n"
+	  "                        select and middle button paste.)\n"
+	  "\n"
+	  "        -sendalways     Whenever the mouse enters the VNC viewer main\n"
+	  "                        window, send the selection to the VNC server even if\n"
+	  "                        it has not changed.  This is like the Xt resource\n"
+	  "                        translation SelectionToVNC(always)\n"
+	  "\n"
+	  "        -recvtext str   When cut text is received from the VNC server,\n"
+	  "                        ssvncviewer will set both the X PRIMARY and the\n"
+	  "                        X CLIPBOARD local selections.  To control which\n"
+	  "                        is set, specify 'str' as 'primary', 'clipboard',\n"
+	  "                        or 'both' (the default.)\n"
+	  "\n"
+	  "        -graball    Grab the entire X server when in fullscreen mode,\n"
+	  "                    needed by some old window managers like fvwm2.\n"
+	  "\n"
+	  "        -popupfix   Warp the popup back to the pointer position,\n"
+	  "                    needed by some old window managers like fvwm2.\n"
 	  "        -sendclipboard  Send the X CLIPBOARD selection (i.e. Ctrl+C,\n"
 	  "                        Ctrl+V) instead of the X PRIMARY selection (mouse\n"
 	  "                        select and middle button paste.)\n"
@@ -1320,9 +1376,9 @@ usage(void)
 	  "\n"
 	  "                    IMPORTANT NOTE: The UltraVNC MS-Logon Diffie-Hellman\n"
 	  "                    exchange is very weak and can be brute forced to recover\n"
-	  "                    your username and password in a few hours or seconds of CPU\n"
-	  "                    time.  To be safe, be sure to use an additional encrypted\n"
-	  "                    tunnel (e.g. SSL or SSH) for the entire VNC session.\n"
+	  "                    your username and password in a few seconds of CPU time.\n"
+	  "                    To be safe, be sure to use an additional encrypted tunnel\n"
+	  "                    (e.g. SSL or SSH) for the entire VNC session.\n"
 	  "\n"
 	  "     -chatonly      Try to be a client that only does UltraVNC text chat. This\n"  
 	  "                    mode is used by x11vnc to present a chat window on the\n"
@@ -1405,7 +1461,8 @@ usage(void)
 	  "        Cursor Shape:            ~ -nocursorshape\n"
 	  "        X11 Cursor:              ~ -x11cursor\n"
 	  "        Cursor Alphablend:       ~ -alpha\n"
-	  "        Toggle Tight/ZRLE:       ~ -encodings ...\n"
+	  "        Toggle Tight/Hextile:    ~ -encodings hextile...\n"
+	  "        Toggle Tight/ZRLE:       ~ -encodings zrle...\n"
 	  "        Toggle ZRLE/ZYWRLE:      ~ -encodings zywrle...\n"
 	  "        Quality Level            ~ -quality (both Tight and ZYWRLE)\n"
 	  "        Compress Level           ~ -compresslevel\n"
@@ -1478,7 +1535,13 @@ GetArgsAndResources(int argc, char **argv)
 		appData.useCursorAlpha = True;
 	}
 	if (getenv("VNCVIEWER_POPUP_FIX")) {
-		appData.popupFix = True;
+		if (getenv("NOPOPUPFIX")) {
+			;
+		} else if (!strcmp(getenv("VNCVIEWER_POPUP_FIX"), "0")) {
+			;
+		} else {
+			appData.popupFix = True;
+		}
 	}
 	if (getenv("VNCVIEWER_GRAB_SERVER")) {
 		appData.grabAll = True;
@@ -1503,6 +1566,9 @@ GetArgsAndResources(int argc, char **argv)
 	}
 	if (getenv("VNCVIEWER_RAWLOCAL")) {
 		appData.useRawLocal = True;
+	}
+	if (getenv("VNCVIEWER_NOTTY") || getenv("SSVNC_VNCVIEWER_NOTTY")) {
+		appData.notty = True;
 	}
 	if (getenv("VNCVIEWER_SBWIDTH")) {
 		int n = atoi(getenv("VNCVIEWER_SBWIDTH"));
@@ -1611,7 +1677,7 @@ GetArgsAndResources(int argc, char **argv)
 
 	if (argc == 1) {
 		vncServerName = DoServerDialog();
-		if (!isatty(0)) {
+		if (!use_tty()) {
 			appData.passwordDialog = True;
 		}
 	} else if (argc != 2) {
@@ -1619,7 +1685,7 @@ GetArgsAndResources(int argc, char **argv)
 	} else {
 		vncServerName = argv[1];
 
-		if (!isatty(0)) {
+		if (!use_tty()) {
 			appData.passwordDialog = True;
 		}
 		if (vncServerName[0] == '-') {

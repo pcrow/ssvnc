@@ -2093,6 +2093,8 @@ SendRFBEvent(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 				ToggleX11Cursor(w, ev, params, num_params);
 			} else if (ks == XK_z || ks == XK_Z) {
 				ToggleTightZRLE(w, ev, params, num_params);
+			} else if (ks == XK_h || ks == XK_H) {
+				ToggleTightHextile(w, ev, params, num_params);
 			} else if (ks == XK_f || ks == XK_F) {
 				ToggleFileXfer(w, ev, params, num_params);
 			} else if (ks == XK_V) {
@@ -2327,7 +2329,7 @@ CreateDotCursor()
 int skip_maybe_sync = 0;
 void maybe_sync(int width, int height) {
 	static int singles = 0, always_skip = -1;
-	int singles_max = 32;
+	int singles_max = 64;
 
 	if (always_skip < 0) {
 		if (getenv("SSVNC_NO_MAYBE_SYNC")) {
@@ -2339,6 +2341,7 @@ void maybe_sync(int width, int height) {
 	if (skip_maybe_sync || always_skip) {
 		return;
 	}
+#if 0
 	if (width > 1 || height > 1) {
 		XSync(dpy, False);
 		singles = 0;
@@ -2348,6 +2351,18 @@ void maybe_sync(int width, int height) {
 			XSync(dpy, False);
 		}
 	}
+#else
+	if (width * height >= singles_max) {
+		XSync(dpy, False);
+		singles = 0;
+	} else {
+		singles += width * height;
+		if (singles >= singles_max) {
+			XSync(dpy, False);
+			singles = 0;
+		}
+	}
+#endif
 }
 /*
  * FillImage.
