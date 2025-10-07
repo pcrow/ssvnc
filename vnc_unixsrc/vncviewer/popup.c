@@ -22,6 +22,8 @@
  */
 
 #include "vncviewer.h"
+#include <time.h>
+#include <sys/wait.h>
 
 #include <X11/Xaw/Form.h>
 #include <X11/Xaw/Command.h>
@@ -32,6 +34,8 @@
 #include <X11/Xaw/Scrollbar.h>
 
 Widget popup, fullScreenToggle;
+
+Bool SendTextChatFinished(void);
 
 void popupFixer(Widget wid) {
 	Window rr, cr; 
@@ -55,7 +59,8 @@ void popupFixer(Widget wid) {
 }
 
 void Noop(Widget w, XEvent *event, String *params, Cardinal *num_params) {
-	//fprintf(stderr, "No-op\n");
+	if (0) fprintf(stderr, "No-op\n");
+	if (w || event || params || num_params) {}
 }
 
 void
@@ -73,11 +78,13 @@ ShowPopup(Widget w, XEvent *event, String *params, Cardinal *num_params)
 	}
 	XSetWMProtocols(dpy, XtWindow(popup), &wmDeleteWindow, 1);
 	XtOverrideTranslations(popup, XtParseTranslationTable ("<Message>WM_PROTOCOLS: HidePopup()"));
+	if (w || event || params || num_params) {}
 }
 
 void
 HidePopup(Widget w, XEvent *event, String *params, Cardinal *num_params) {
 	XtPopdown(popup);
+	if (w || event || params || num_params) {}
 }
 
 
@@ -90,7 +97,7 @@ static XtResource resources[] = {
 
 void
 CreatePopup() {
-	Widget buttonForm1, buttonForm2, twoForm, button, prevButton = NULL;
+	Widget buttonForm1, buttonForm2, twoForm, button = 0, prevButton = NULL;
 	int i;
 	char buttonName[12];
 	String buttonType;
@@ -150,12 +157,14 @@ ShowScaleN(Widget w, XEvent *event, String *params, Cardinal *num_params)
   }
   XSetWMProtocols(dpy, XtWindow(scaleN), &wmDeleteWindow, 1);
   XtOverrideTranslations(scaleN, XtParseTranslationTable ("<Message>WM_PROTOCOLS: HideScaleN()"));
+	if (w || event || params || num_params) {}
 }
 
 void
 HideScaleN(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
   XtPopdown(scaleN);
+	if (w || event || params || num_params) {}
 }
 
 
@@ -211,6 +220,7 @@ void qualScrollProc(Widget w, XtPointer client, XtPointer p) {
 	appData.qualityLevel=qual;
 	UpdateQual();
 #endif
+	if (w || client || p) {}
 }
 
 void qualJumpProc(Widget w, XtPointer client, XtPointer p) {
@@ -220,6 +230,7 @@ void qualJumpProc(Widget w, XtPointer client, XtPointer p) {
 	appData.qualityLevel=qual;
 	UpdateQual();
 #endif
+	if (w || client || p) {}
 }
 
 void UpdateSubsampButtons(void) {
@@ -259,12 +270,14 @@ ShowTurboVNC(Widget w, XEvent *event, String *params, Cardinal *num_params)
 	}
 	XSetWMProtocols(dpy, XtWindow(turbovncW), &wmDeleteWindow, 1);
 	XtOverrideTranslations(turbovncW, XtParseTranslationTable ("<Message>WM_PROTOCOLS: HideTurboVNC()"));
+	if (w || event || params || num_params) {}
 }
 
 void
 HideTurboVNC(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
   XtPopdown(turbovncW);
+	if (w || event || params || num_params) {}
 }
 
 void
@@ -327,12 +340,14 @@ ShowQuality(Widget w, XEvent *event, String *params, Cardinal *num_params)
   }
   XSetWMProtocols(dpy, XtWindow(qualityW), &wmDeleteWindow, 1);
   XtOverrideTranslations(qualityW, XtParseTranslationTable ("<Message>WM_PROTOCOLS: HideQuality()"));
+	if (w || event || params || num_params) {}
 }
 
 void
 HideQuality(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
   XtPopdown(qualityW);
+	if (w || event || params || num_params) {}
 }
 
 
@@ -383,12 +398,14 @@ ShowCompress(Widget w, XEvent *event, String *params, Cardinal *num_params)
   }
   XSetWMProtocols(dpy, XtWindow(compressW), &wmDeleteWindow, 1);
   XtOverrideTranslations(compressW, XtParseTranslationTable ("<Message>WM_PROTOCOLS: HideCompress()"));
+	if (w || event || params || num_params) {}
 }
 
 void
 HideCompress(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
   XtPopdown(compressW);
+	if (w || event || params || num_params) {}
 }
 
 
@@ -436,6 +453,7 @@ void HideFile(Widget w, XEvent *event, String *params, Cardinal *num_params) {
 		close(filexfer_listen);
 		filexfer_listen = -1;
 	}
+	if (w || event || params || num_params) {}
 }
 
 extern int use_loopback;
@@ -459,6 +477,9 @@ void ShowFile(Widget w, XEvent *event, String *params, Cardinal *num_params) {
 	for (i = 0; i < 100; i++) {
 		port = port0 + i;
 		sock = ListenAtTcpPort(port);
+		if (sock < 0) {
+			sock = ListenAtTcpPort6(port);
+		}
 		if (sock >= 0) {
 			fprintf(stderr, "listening for filexfer on port: %d sock: %d\n", port, sock);
 			break;
@@ -500,6 +521,7 @@ void ShowFile(Widget w, XEvent *event, String *params, Cardinal *num_params) {
 	}
 	free(cmd);
 	filexfer_listen = sock;
+	if (w || event || params || num_params) {}
 }
 
 Widget chat, entry, text;
@@ -525,6 +547,7 @@ ShowChat(Widget w, XEvent *event, String *params, Cardinal *num_params)
 		XSync(dpy, False);
 		usleep(200 * 1000);
 	}
+	if (w || event || params || num_params) {}
 }
 
 void hidechat(void) {
@@ -547,12 +570,14 @@ void HideChat(Widget w, XEvent *event, String *params, Cardinal *num_params) {
 	SendTextChatClose();
 	SendTextChatFinished();
 	hidechat();
+	if (w || event || params || num_params) {}
 }
 
 void dismiss_proc(Widget w, XtPointer client_data, XtPointer call_data) {
 	SendTextChatClose();
 	SendTextChatFinished();
 	hidechat();
+	if (w || client_data || call_data) {}
 }
 
 extern void printChat(char *, Bool);
@@ -575,6 +600,7 @@ static void ChatTextCallback(XtPointer clientData, XtIntervalId *id) {
 	}
 	if (db) fprintf(stderr, "ChatTextCallback: %.4f\n", dnow() - start_time);
 	CheckTextInput();
+	if (clientData || id) {}
 }
 
 void CheckTextInput(void) {
@@ -691,7 +717,6 @@ void AppendChatInput0(char *in) {
 }
 
 void AppendChatInput(char *in) {
-	int len;
 	XawTextPosition beg, end;
 	static XawTextPosition pos = 0;
 	XawTextBlock txt;
@@ -703,7 +728,9 @@ void AppendChatInput(char *in) {
 	XawTextSetInsertionPoint(text, pos);
 	beg = XawTextGetInsertionPoint(text);
 	end = beg;
-	//fprintf(stderr, "AppendChatInput: pos=%d in= '%s'\n", beg, in);
+#if 0
+	fprintf(stderr, "AppendChatInput: pos=%d in= '%s'\n", beg, in);
+#endif
 
 	txt.firstPos = 0;
 	txt.length = strlen(in);
@@ -714,18 +741,19 @@ void AppendChatInput(char *in) {
 	XawTextSetInsertionPoint(text, beg + txt.length);
 
 	pos = XawTextGetInsertionPoint(text);
-	//fprintf(stderr, "AppendChatInput done pos=%d\n", pos);
+#if 0
+	fprintf(stderr, "AppendChatInput done pos=%d\n", pos);
+#endif
 }
 
+#if 0
 static char errorbuf[1] = {0};
+#endif
 
 void CreateChat(void) {
 
 	Widget myform, dismiss;
-	int i, n;
 	Dimension w = 400, h = 300;
-	Dimension x = 33, y = 33;
-	Arg args[10];
 
 	chat = XtVaCreatePopupShell("chat", topLevelShellWidgetClass, toplevel, XtNmappedWhenManaged, False, NULL);
 
@@ -758,7 +786,6 @@ void CreateChat(void) {
 Widget msgwin, msgtext;
 
 void AppendMsg(char *in) {
-	int len;
 	XawTextPosition beg, end;
 	static XawTextPosition pos = 0;
 	XawTextBlock txt;
@@ -786,6 +813,7 @@ void msg_dismiss_proc(Widget w, XtPointer client_data, XtPointer call_data) {
 	msg_visible = 0;
 	XSync(dpy, False);
 	usleep(200 * 1000);
+	if (w || client_data || call_data) {}
 }
 
 void msg_NO_proc(Widget w, XtPointer client_data, XtPointer call_data) {
@@ -794,13 +822,14 @@ void msg_NO_proc(Widget w, XtPointer client_data, XtPointer call_data) {
 	msg_NO_clicked = 1;
 	XSync(dpy, False);
 	usleep(200 * 1000);
+	if (w || client_data || call_data) {}
 }
 
 int CreateMsg(char *msg, int wait) {
 
 	Widget myform, dismiss, reject;
 	char *p;
-	int i, n, run, wmax = 0;
+	int n, run, wmax = 0;
 	int ret = 1;
 	Dimension w, h;
 

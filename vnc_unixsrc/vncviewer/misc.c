@@ -23,6 +23,7 @@
 
 #include <vncviewer.h>
 #include <signal.h>
+#include <sys/wait.h>
 #include <fcntl.h>
 
 static void CleanupSignalHandler(int sig);
@@ -41,6 +42,12 @@ static XIOErrorHandler defaultXIOErrorHandler;
 static XtErrorHandler defaultXtErrorHandler;
 
 int XError_ign = 0;
+
+void check_tall(void);
+int guessCrop(void);
+void get_scale_values(double *fx, double *fy);
+int scale_round(int n, double factor);
+Bool SendTextChatFinished(void);
 
 /*
  * ToplevelInitBeforeRealization sets the title, geometry and other resources
@@ -244,6 +251,7 @@ void Pause(Widget w, XEvent *event, String *params, Cardinal *num_params) {
 		msec = atoi(params[0]);
 	}
 	usleep(msec * 1000);
+	if (w || event || params || num_params) {}
 }
 
 
@@ -296,6 +304,7 @@ RunCommand(Widget w, XEvent *event, String *params, Cardinal *num_params)
   /* Wait for Child 1 to die */
   wait(&childstatus);
   
+	if (w || event || params || num_params) {}
   return;
 }
 
@@ -306,6 +315,7 @@ RunCommand(Widget w, XEvent *event, String *params, Cardinal *num_params)
 
 void Quit(Widget w, XEvent *event, String *params, Cardinal *num_params) {
 	Cleanup();
+	if (w || event || params || num_params) {}
 	exit(0);
 }
 
@@ -368,7 +378,7 @@ CleanupXErrorHandler(Display *dpy, XErrorEvent *error)
 		if (XGetErrorText(dpy, error->error_code, str, 4096)) {
 			fprintf(stderr, "%s", str);
 		}
-		return;
+		return 0;
 	}
 	fprintf(stderr,"CleanupXErrorHandler called\n");
 	check_dbg();
@@ -400,6 +410,7 @@ CleanupSignalHandler(int sig)
 	fprintf(stderr,"CleanupSignalHandler called\n");
 	check_dbg();
 	Cleanup();
+	if (sig) {}
 	exit(1);
 }
 
@@ -444,7 +455,7 @@ IconifyNamedWindow(Window w, char *name, Bool undo)
   if (!XQueryTree(dpy, w, &dummy, &dummy, &children, &nchildren))
     return False;
 
-  for (i = 0; i < nchildren; i++) {
+  for (i = 0; i < (int) nchildren; i++) {
     if (IconifyNamedWindow(children[i], name, undo)) {
       XFree ((char *)children);
       return True;

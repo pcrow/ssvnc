@@ -525,8 +525,8 @@ if (0) fprintf(stderr, "cha5: %dx%d+%d+%d\n", w, h, x, y);
 		}
 
 		zywrle_level &= 0x7F;
-		// Reverse copy: screen to buf/ptmp:
-		// make this CopyDataFromScreen() or something.
+		/* Reverse copy: screen to buf/ptmp: */
+		/* make this CopyDataFromScreen() or something. */
 		if (!appData.useBGR565) {
 			scrWidthInBytes = si.framebufferWidth * myFormat.bitsPerPixel / 8;
 			if (scrWidthInBytes != im->bytes_per_line) scrWidthInBytes = im->bytes_per_line;

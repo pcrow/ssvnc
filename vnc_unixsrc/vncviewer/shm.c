@@ -32,6 +32,7 @@ static Bool needShmCleanup = False;
 
 static int ShmCreationXErrorHandler(Display *dpy, XErrorEvent *error) {
 	caughtShmError = True;
+	if (dpy || error) {}
 	return 0;
 }
 
@@ -101,7 +102,7 @@ CreateShmImage(int do_ycrop)
 
 	if (shminfo.shmid == -1) {
 		XDestroyImage(image);
-		//fprintf(stderr, "CreateShmImage: destroyed 'image' (1)\n");
+		if (0) fprintf(stderr, "CreateShmImage: destroyed 'image' (1)\n");
 		return NULL;
 	}
 
@@ -109,7 +110,9 @@ CreateShmImage(int do_ycrop)
 
 	if (shminfo.shmaddr == (char *)-1) {
 		XDestroyImage(image);
-		//fprintf(stderr, "CreateShmImage: destroyed 'image' (2)\n");
+#if 0
+		fprintf(stderr, "CreateShmImage: destroyed 'image' (2)\n");
+#endif
 		shmctl(shminfo.shmid, IPC_RMID, 0);
 		return NULL;
 	}
@@ -123,7 +126,9 @@ CreateShmImage(int do_ycrop)
 
 	if (caughtShmError) {
 		XDestroyImage(image);
-		//fprintf(stderr, "CreateShmImage: destroyed 'image' (3)\n");
+#if 0
+		fprintf(stderr, "CreateShmImage: destroyed 'image' (3)\n");
+#endif
 		shmdt(shminfo.shmaddr);
 		shmctl(shminfo.shmid, IPC_RMID, 0);
 		return NULL;

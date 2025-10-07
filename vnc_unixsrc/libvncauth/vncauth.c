@@ -27,6 +27,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <time.h>
 #include <vncauth.h>
 #include <d3des.h>
 
@@ -46,6 +47,8 @@ static int s_srandom_called = 0;
 
 static unsigned char s_fixedkey[8] = {23,82,107,6,35,78,88,7};
 
+int vncEncryptAndStorePasswd2(char *passwd, char *passwdViewOnly, char *fname);
+int vncDecryptPasswdFromFile2(char *fname, char *passwdFullControl, char *passwdViewOnly);
 
 /*
  * Encrypt a password and store it in a file.  Returns 0 if successful,
@@ -74,7 +77,7 @@ int
 vncEncryptAndStorePasswd2(char *passwd, char *passwdViewOnly, char *fname)
 {
     FILE *fp;
-    int i, bytesToWrite, bytesWrote;
+    int bytesToWrite, bytesWrote;
     unsigned char encryptedPasswd[16] = {
 	0,0,0,0,0,0,0,0,
 	0,0,0,0,0,0,0,0

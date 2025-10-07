@@ -1971,6 +1971,21 @@ System.out.println("nFileSizeLow:     " + nFileSizeLow);
 
 		boolean down = (evt.getID() == KeyEvent.KEY_PRESSED);
 
+		if (viewer.debugKeyboard) {
+			System.out.println("----------------------------------------");
+			System.out.println("evt.getKeyChar:      " + evt.getKeyChar());
+			System.out.println("getKeyText:          " + KeyEvent.getKeyText(evt.getKeyCode()));
+			System.out.println("evt.getKeyCode:      " + evt.getKeyCode());
+			System.out.println("evt.getID:           " + evt.getID());
+			System.out.println("evt.getKeyLocation:  " + evt.getKeyLocation());
+			System.out.println("evt.isActionKey:     " + evt.isActionKey());
+			System.out.println("evt.isControlDown:   " + evt.isControlDown());
+			System.out.println("evt.getModifiers:    " + evt.getModifiers());
+			System.out.println("getKeyModifiersText: " + KeyEvent.getKeyModifiersText(evt.getModifiers()));
+			System.out.println("evt.paramString:     " + evt.paramString());
+		}
+
+
 		int key;
 		if (evt.isActionKey()) {
 
@@ -2045,6 +2060,9 @@ System.out.println("nFileSizeLow:     " + nFileSizeLow);
 					break;
 				default :
 					return;
+			}
+			if (key == 0xffc2 && viewer.mapF5_to_atsign) {
+				key = 0x40;
 			}
 
 		} else {
@@ -2155,6 +2173,16 @@ System.out.println("nFileSizeLow:     " + nFileSizeLow);
 	int oldModifiers = 0;
 
 	void writeModifierKeyEvents(int newModifiers) {
+		if(viewer.forbid_Ctrl_Alt) {
+			if ((newModifiers & CTRL_MASK) != 0 && (newModifiers & ALT_MASK) != 0) {
+				int orig = newModifiers;
+				newModifiers &= ~ALT_MASK;
+				newModifiers &= ~CTRL_MASK;
+				if (viewer.debugKeyboard) {
+					System.out.println("Ctrl+Alt modifiers: " + orig + " -> " + newModifiers);
+				}
+			}
+		}
 		if ((newModifiers & CTRL_MASK) != (oldModifiers & CTRL_MASK))
 			writeKeyEvent(0xffe3, (newModifiers & CTRL_MASK) != 0);
 

@@ -25,6 +25,8 @@
 
 #include <sys/stat.h>
 #include <unistd.h>
+#include <time.h>
+#include <ctype.h>
 #include <errno.h>
 #include <pwd.h>
 #include <vncviewer.h>
@@ -70,6 +72,9 @@ static Bool HandleZRLE24Up(int rx, int ry, int rw, int rh);
 static Bool HandleZRLE24Down(int rx, int ry, int rw, int rh);
 static Bool HandleZRLE32(int rx, int ry, int rw, int rh);
 
+extern Bool HandleCursorPos(int x, int y);
+extern void printChat(char *, Bool);
+
 typedef struct {
     unsigned long length;
 } rfbZRLEHeader;
@@ -108,6 +113,9 @@ static void JpegSkipInputData(j_decompress_ptr cinfo, long num_bytes);
 static void JpegTermSource(j_decompress_ptr cinfo);
 static void JpegSetSrcManager(j_decompress_ptr cinfo, CARD8 *compressedData,
                               int compressedLen);
+
+extern void deskey(unsigned char *, int);
+extern void des(unsigned char *, unsigned char *);
 
 extern int currentMsg;
 extern double scale_factor_x;
@@ -271,7 +279,6 @@ static void wmsg(char *msg, int wait) {
 Bool
 ConnectToRFBServer(const char *hostname, int port)
 {
-	unsigned int host;
 	char *q, *cmd = NULL;
 	Bool setnb;
 	struct stat sb;
@@ -369,13 +376,26 @@ ConnectToRFBServer(const char *hostname, int port)
 		}
 		
 	} else {
-		if (!StringToIPAddr(hostname, &host)) {
-			sprintf(msgbuf,"Couldn't convert '%s' to host address\n", hostname);
-			wmsg(msgbuf, 1);
-			return False;
-		}
+		rfbsock = ConnectToTcpAddr(hostname, port);
 
-		rfbsock = ConnectToTcpAddr(host, port);
+		if (rfbsock < 0 && !appData.noipv4) {
+			char *q, *hosttmp;
+			if (hostname[0] == '[') {
+				hosttmp = strdup(hostname+1);
+			} else {
+				hosttmp = strdup(hostname);
+			}
+			q = strrchr(hosttmp, ']');
+			if (q) *q = '\0';
+			if (strstr(hosttmp, "::ffff:") == hosttmp || strstr(hosttmp, "::FFFF:") == hosttmp) {
+				char *host = hosttmp + strlen("::ffff:");
+				if (dotted_ip(host, 0))  {
+					fprintf(stderr, "ConnectToTcpAddr[ipv4]: re-trying connection using '%s'\n", host);
+					rfbsock = ConnectToTcpAddr(host, port);
+				}
+			}
+			free(hosttmp);
+		}
 
 		if (rfbsock < 0) {
 			sprintf(msgbuf,"Unable to connect to VNC server (%s:%d)\n", hostname, port);
@@ -415,7 +435,7 @@ static char *pr_sec_type(int type) {
 	if (type == rfbSecTypeAnonTls) str = "rfbSecTypeAnonTls";
 	if (type == rfbSecTypeVencrypt) str = "rfbSecTypeVencrypt";
 
-	if (type == rfbUltraVncMsLogon) str = "rfbUltraVncMsLogon";
+	if (type == (int) rfbUltraVncMsLogon) str = "rfbUltraVncMsLogon";
 	return str;
 }
 
@@ -708,7 +728,7 @@ InitialiseRFBConnection(void)
 		}
 		dt_out_sc = dnow();
 		msg_sz = Swap32IfBE(msg_sz);
-		if (msg_sz < 0 || msg_sz > 1024) {
+		if (msg_sz > 1024) {
 			fprintf(stderr, "UVNC msg size too big: %d\n", msg_sz);
 			exit(1);
 		}
@@ -834,7 +854,7 @@ InitialiseRFBConnection(void)
 	switch (secType) {
 		case rfbSecTypeNone:
 			fprintf(stderr, "No VNC authentication needed\n");
-			if (viewer_minor == 8) {
+			if (viewer_minor >= 8) {
 				CARD32 authResult;
 
 				if (!ReadFromRFBServer((char *)&authResult, 4)) {
@@ -844,9 +864,9 @@ InitialiseRFBConnection(void)
 				authResult = Swap32IfLE(authResult);
 
 				if (authResult == rfbVncAuthOK) {
-					fprintf(stderr, "VNC authentication succeeded (%d) for rfbSecTypeNone (RFB 3.8)\n", authResult);
+					fprintf(stderr, "VNC authentication succeeded (%d) for rfbSecTypeNone (RFB 3.8)\n", (int) authResult);
 				} else {
-					sprintf(msgbuf, "VNC authentication failed (%d) for rfbSecTypeNone (RFB 3.8)\n\n", authResult);
+					sprintf(msgbuf, "VNC authentication failed (%d) for rfbSecTypeNone (RFB 3.8)\n\n", (int) authResult);
 					wmsg(msgbuf, 1);
 					return False;
 				}
@@ -1014,6 +1034,8 @@ SelectSecurityType(void)
 	CARD8 secType = rfbSecTypeInvalid;
 	int i, j;
 
+	if (secTypeNames) {}
+
 	/* Read the list of security types. */
 	if (!ReadFromRFBServer((char *)&nSecTypes, sizeof(nSecTypes))) {
 		return rfbSecTypeInvalid;
@@ -1038,6 +1060,9 @@ SelectSecurityType(void)
 
 	/* Find out if the server supports TightVNC protocol extensions */
 	for (j = 0; j < (int)nSecTypes; j++) {
+		if (getenv("VNCVIEWER_NO_SEC_TYPE_TIGHT")) {
+			break;
+		}
 		if (getenv("SSVNC_NO_SEC_TYPE_TIGHT")) {
 			break;
 		}
@@ -1142,6 +1167,23 @@ PerformAuthenticationTight(void)
 
 	if (!caps.nAuthTypes) {
 		fprintf(stderr, "No VNC authentication needed\n\n");
+		if (viewer_minor >= 8) {
+			CARD32 authResult;
+
+			if (!ReadFromRFBServer((char *)&authResult, 4)) {
+				return False;
+			}
+
+			authResult = Swap32IfLE(authResult);
+
+			if (authResult == rfbVncAuthOK) {
+				fprintf(stderr, "VNC authentication succeeded (%d) for PerformAuthenticationTight rfbSecTypeNone (RFB 3.8)\n", (int) authResult);
+			} else {
+				sprintf(msgbuf, "VNC authentication failed (%d) for PerformAuthenticationTight rfbSecTypeNone (RFB 3.8)\n\n", (int) authResult);
+				wmsg(msgbuf, 1);
+				return False;
+			}
+		}
 		return True;
 	}
 
@@ -1285,6 +1327,7 @@ static void uint64_to_bytes(unsigned long long n, char *bytes) {
 }
 
 static void try_invert(char *wireuser, char *wirepass, unsigned long long actual_key) {
+	if (wireuser || wirepass || actual_key) {}
 	return;
 }
 
@@ -1367,7 +1410,7 @@ static Bool AuthUltraVncMsLogon(void) {
 
 	/* make a random long long: */
 	uprv = 0xffffffff * (now - (unsigned int) now);
-	uprv << 32;
+	uprv = uprv << 32;
 	uprv |= (unsigned long long) urandom();
 	uprv = uprv % max_dh;
 
@@ -1525,6 +1568,8 @@ AuthenticateVNC(void)
 	int   len;
 	int restart = 0;
 
+	if (authScheme) {}
+
 	fprintf(stderr, "\nPerforming standard VNC authentication\n");
 
 	if (!ReadFromRFBServer((char *)challenge, CHALLENGESIZE)) {
@@ -1588,8 +1633,10 @@ AuthenticateVNC(void)
 	
 
 
-//	/* Lose the password from memory */
-//	memset(passwd, '\0', strlen(passwd));
+#if 0
+	/* Lose the password from memory */
+	memset(passwd, '\0', strlen(passwd));
+#endif
 
 	if (!WriteExact(rfbsock, (char *)challenge, CHALLENGESIZE)) {
 		return False;
@@ -1675,8 +1722,10 @@ AuthenticateUnixLogin(void)
 		return False;
 	}
 
-//	/* Lose the password from memory */
-//	memset(passwd, '\0', strlen(passwd));
+#if 0
+	/* Lose the password from memory */
+	memset(passwd, '\0', strlen(passwd));
+#endif
 
 	if (!ReadFromRFBServer((char *)&authResult, sizeof(authResult))) {
 		return False;
@@ -1828,7 +1877,11 @@ SetFormatAndEncodings()
 	tQLmax = 100;
 #endif
 
-//  fprintf(stderr, "SetFormatAndEncodings: sent_FBU state: %2d\n", sent_FBU);
+	if (requestTextChatEncoding || requestSubsampLevel || tQL) {}
+
+#if 0
+  fprintf(stderr, "SetFormatAndEncodings: sent_FBU state: %2d\n", sent_FBU);
+#endif
 
   spf.type = rfbSetPixelFormat;
   spf.format = myFormat;
@@ -2177,7 +2230,9 @@ SendPointerEvent(int x, int y, int buttonMask)
 
 	if (appData.fileActive) {
 		if (!dyn || time(NULL) < last_filexfer + delay_filexfer) {
-			//fprintf(stderr, "skip SendPointerEvent: %d - %d\n", last_filexfer, time(NULL));
+#if 0
+			fprintf(stderr, "skip SendPointerEvent: %d - %d\n", last_filexfer, time(NULL));
+#endif
 			return True;
 		}
 	}
@@ -2217,7 +2272,9 @@ SendKeyEvent(CARD32 key, Bool down)
 
 	if (appData.fileActive) {
 		if (!dyn || time(NULL) < last_filexfer + delay_filexfer) {
-			//fprintf(stderr, "skip SendPointerEvent: %d - %d\n", last_filexfer, time(NULL));
+#if 0
+			fprintf(stderr, "skip SendPointerEvent: %d - %d\n", last_filexfer, time(NULL));
+#endif
 			return True;
 		}
 	}
@@ -2246,7 +2303,7 @@ SendClientCutText(char *str, int len)
 
 	if (appData.fileActive) {
 		if (!dyn || time(NULL) < last_filexfer + delay_filexfer) {
-			// ultravnc java viewer lets this one through.
+			/* ultravnc java viewer lets this one through. */
 			return True;
 		}
 	}
@@ -2256,7 +2313,7 @@ SendClientCutText(char *str, int len)
 	}
 
 	cct.type = rfbClientCutText;
-	cct.length = Swap32IfLE(len);
+	cct.length = Swap32IfLE((unsigned int) len);
 	currentMsg = rfbClientCutText;
 	return  (WriteExact(rfbsock, (char *)&cct, sz_rfbClientCutTextMsg) &&
 	    WriteExact(rfbsock, str, len));
@@ -2343,7 +2400,7 @@ SendTextChat(char *str)
 	chat.pad1 = 0;
 	chat.pad2 = 0;
 	chat.length = (unsigned int) strlen(str);
-	if (db) fprintf(stderr, "SendTextChat: %d '%s'\n", chat.length, str);
+	if (db) fprintf(stderr, "SendTextChat: %d '%s'\n", (int) chat.length, str);
 	chat.length = Swap32IfLE(chat.length);
 	if (!WriteExact(rfbsock, (char *)&chat, sz_rfbTextChatMsg)) {
 		return False;
@@ -2357,8 +2414,9 @@ extern void raiseme(int force);
 Bool
 SendTextChatOpen(void)
 {
-	raiseme(0);
 	rfbTextChatMsg chat;
+
+	raiseme(0);
 	chat.type = rfbTextChat;
 	chat.pad1 = 0;
 	chat.pad2 = 0;
@@ -2432,35 +2490,35 @@ Bool HandleFileXfer(void) {
 	unsigned int len;
 
         int rfbDirContentRequest = 1;
-        int rfbDirPacket = 2; // Full directory name or full file name.
+        int rfbDirPacket = 2; /* Full directory name or full file name. */
         int rfbFileTransferRequest = 3;
         int rfbFileHeader = 4;
-        int rfbFilePacket = 5; // One slice of the file
+        int rfbFilePacket = 5; /* One slice of the file */
         int rfbEndOfFile = 6;
         int rfbAbortFileTransfer = 7;
         int rfbFileTransferOffer = 8;
-        int rfbFileAcceptHeader = 9; // The server accepts or rejects the file
+        int rfbFileAcceptHeader = 9; /* The server accepts or rejects the file */
         int rfbCommand = 10;
         int rfbCommandReturn = 11;
         int rfbFileChecksums = 12;
 
-        int rfbRDirContent = 1; // Request a Server Directory contents
-        int rfbRDrivesList = 2; // Request the server's drives list
+        int rfbRDirContent = 1; /* Request a Server Directory contents */
+        int rfbRDrivesList = 2; /* Request the server's drives list */
 
-        int rfbADirectory = 1; // Reception of a directory name
-        int rfbAFile = 2; // Reception of a file name 
-        int rfbADrivesList = 3; // Reception of a list of drives
-        int rfbADirCreate = 4; // Response to a create dir command 
-        int rfbADirDelete = 5; // Response to a delete dir command 
-        int rfbAFileCreate = 6; // Response to a create file command 
-        int rfbAFileDelete = 7; // Response to a delete file command
+        int rfbADirectory = 1; /* Reception of a directory name */
+        int rfbAFile = 2; /* Reception of a file name  */
+        int rfbADrivesList = 3; /* Reception of a list of drives */
+        int rfbADirCreate = 4; /* Response to a create dir command  */
+        int rfbADirDelete = 5; /* Response to a delete dir command  */
+        int rfbAFileCreate = 6; /* Response to a create file command  */
+        int rfbAFileDelete = 7; /* Response to a delete file command */
 
-        int rfbCDirCreate = 1; // Request the server to create the given directory
-        int rfbCDirDelete = 2; // Request the server to delete the given directory
-        int rfbCFileCreate = 3; // Request the server to create the given file
-        int rfbCFileDelete = 4; // Request the server to delete the given file
+        int rfbCDirCreate = 1; /* Request the server to create the given directory */
+        int rfbCDirDelete = 2; /* Request the server to delete the given directory */
+        int rfbCFileCreate = 3; /* Request the server to create the given file */
+        int rfbCFileDelete = 4; /* Request the server to delete the given file */
 
-        int rfbRErrorUnknownCmd = 1; // Unknown FileTransfer command.
+        int rfbRErrorUnknownCmd = 1; /* Unknown FileTransfer command. */
 #define rfbRErrorCmd 0xFFFFFFFF
 
 	static int db = -1;
@@ -2470,10 +2528,10 @@ Bool HandleFileXfer(void) {
 	if (filexfer_sock < 0) {
 		return True;
 	}
-	// instead, we read and discard the ft msg data.
+	/* instead, we read and discard the ft msg data. */
 #endif
 
-//fprintf(stderr, "In  HandleFileXfer\n");
+/*fprintf(stderr, "In  HandleFileXfer\n"); */
 
 	if (db < 0) {
 		if (getenv("DEBUG_HandleFileXfer")) {
@@ -2484,12 +2542,12 @@ Bool HandleFileXfer(void) {
 	}
 
 	last_filexfer = time(NULL);
-	//fprintf(stderr, "last_filexfer-1: %d\n", last_filexfer);
+	/*fprintf(stderr, "last_filexfer-1: %d\n", last_filexfer); */
 
-	// load first byte to send to Java be the FT msg number:
+	/* load first byte to send to Java be the FT msg number: */
 	hdr[0] = rfbFileTransfer;
 
-	// this is to avoid XtAppProcessEvent() calls induce by our ReadFromRFBServer calls below:
+	/* this is to avoid XtAppProcessEvent() calls induce by our ReadFromRFBServer calls below: */
 	skip_XtUpdateAll = 1;
 	if (!ReadFromRFBServer(&hdr[1], 11)) {
 		skip_XtUpdateAll = 0;
@@ -2553,7 +2611,7 @@ Bool HandleFileXfer(void) {
 				int timeH4 = (unsigned char) fxfer[11];
 				if (dattr != 0) {
 					if (timeH1 == 0 && timeH2 == 0 && timeH3 == 0 && timeH4 == 0) {
-						if (timeL1 != 0 || timeL2 != 0 && timeL3 != 0 && timeL4 != 0) {
+						if ((timeL1 != 0 || timeL2 != 0) && timeL3 != 0 && timeL4 != 0) {
 							if (!guess_x11vnc) fprintf(stderr, "guessed x11vnc server\n");
 							guess_x11vnc = 1;
 						}
@@ -2575,7 +2633,7 @@ Bool HandleFileXfer(void) {
 #if 0
 	if (hdr[1] == rfbFileHeader && len != rfbRErrorCmd)
 #else
-	// the extra 4 bytes get send on rfbRErrorCmd as well.
+	/* the extra 4 bytes get send on rfbRErrorCmd as well. */
 	if (hdr[1] == rfbFileHeader) {
 #endif
 		int is_err = 0;
@@ -2611,7 +2669,7 @@ Bool HandleFileXfer(void) {
 		int stop = 0;
 		static time_t last_stop = 0;
 #if 0
-		// this isn't working
+		/* this isn't working */
 		if (hdr[1] == rfbFilePacket || hdr[1] == rfbFileHeader) {
 			fprintf(stderr, "filexfer_sock closed, trying to abort receive\n");
 			stop = 1;
@@ -2635,7 +2693,7 @@ Bool HandleFileXfer(void) {
 
 	if (db) fprintf(stderr, "CFX: B\n");
 	CheckFileXfer();
-//fprintf(stderr, "Out HandleFileXfer\n");
+/*fprintf(stderr, "Out HandleFileXfer\n"); */
 	return True;
 }
 
@@ -2667,7 +2725,7 @@ HandleRFBServerMessage()
 		}
 	}
 
-//fprintf(stderr, "msg.type: %d\n", msg.type);
+/*fprintf(stderr, "msg.type: %d\n", msg.type); */
 
 	if (msg.type == rfbFileTransfer) {
 		return HandleFileXfer();
@@ -2715,7 +2773,6 @@ HandleRFBServerMessage()
 	int linesToRead;
 	int bytesPerLine;
 	int i;
-	int usecs;
 
 	int area_copyrect = 0;
 	int area_tight = 0;
@@ -2727,6 +2784,8 @@ HandleRFBServerMessage()
 	int try_delay_sync = 0;
 	int cnt_pseudo = 0;
 	int cnt_image  = 0;
+
+	int skip_incFBU = 0;
 
 	if (db) fprintf(stderr, "FBU-0:    %.6f\n", dnow());
 	if (rdb < 0) {
@@ -2745,7 +2804,6 @@ HandleRFBServerMessage()
 		}
 	}
 
-	int skip_incFBU = 0;
 	sent_FBU = -1;
 
 	if (appData.pipelineUpdates) {
@@ -2819,7 +2877,7 @@ HandleRFBServerMessage()
 		rect.r.w = Swap16IfLE(rect.r.w);
 		rect.r.h = Swap16IfLE(rect.r.h);
 
-		if (rdb > 1) fprintf(stderr, "nRects: %d  i=%d enc: %d   %dx%d+%d+%d\n", msg.fu.nRects, i, rect.encoding, rect.r.w, rect.r.h, rect.r.x, rect.r.y); 
+		if (rdb > 1) fprintf(stderr, "nRects: %d  i=%d enc: %d   %dx%d+%d+%d\n", msg.fu.nRects, i, (int) rect.encoding, rect.r.w, rect.r.h, rect.r.x, rect.r.y); 
 			
 		if (rect.encoding == rfbEncodingXCursor || rect.encoding == rfbEncodingRichCursor) {
 			cnt_pseudo++;
@@ -2860,7 +2918,7 @@ HandleRFBServerMessage()
 			fprintf(stderr,"New Size: %dx%d at (%d, %d)\n", rect.r.w, rect.r.h, rect.r.x, rect.r.y);
 			si.framebufferWidth = rect.r.w;
 			si.framebufferHeight = rect.r.h;
-			//fprintf(stderr, "si: %d %d\n", si.framebufferWidth, si.framebufferHeight);
+			/*fprintf(stderr, "si: %d %d\n", si.framebufferWidth, si.framebufferHeight); */
 			ReDoDesktop();
 			continue;
 		}
@@ -2878,12 +2936,12 @@ HandleRFBServerMessage()
 			case rfbEncodingRRE:
 			case rfbEncodingCoRRE:
 			case rfbEncodingHextile:
-			//case rfbEncodingUltra:
-//			case rfbEncodingZlib:
-			//case rfbEncodingXOR_Zlib:
-			//case rfbEncodingXORMultiColor_Zlib:
-			//case rfbEncodingXORMonoColor_Zlib:
-			//case rfbEncodingSolidColor:
+			/*case rfbEncodingUltra: */
+/*			case rfbEncodingZlib: */
+			/*case rfbEncodingXOR_Zlib: */
+			/*case rfbEncodingXORMultiColor_Zlib: */
+			/*case rfbEncodingXORMonoColor_Zlib: */
+			/*case rfbEncodingSolidColor: */
 			case rfbEncodingTight:
 			case rfbEncodingZlibHex:
 			case rfbEncodingZRLE:
@@ -2900,14 +2958,14 @@ HandleRFBServerMessage()
 		    (rect.r.y + rect.r.h > si.framebufferHeight)) {
 			if (!appData.chatOnly) {
 				fprintf(stderr,"Rect too large: %dx%d at (%d, %d) encoding=%d\n",
-				rect.r.w, rect.r.h, rect.r.x, rect.r.y, rect.encoding);
+				rect.r.w, rect.r.h, rect.r.x, rect.r.y, (int) rect.encoding);
 				return False;
 			}
 		}
 
 		if (rect.r.h * rect.r.w == 0) {
 			fprintf(stderr,"*** Warning *** Zero size rect: %dx%d+%d+%d  encoding=%d\n",
-			    rect.r.w, rect.r.h, rect.r.x, rect.r.y, rect.encoding);
+			    rect.r.w, rect.r.h, rect.r.x, rect.r.y, (int) rect.encoding);
 			if (0) continue;
 		}
 
@@ -3418,7 +3476,7 @@ if (db) fprintf(stderr, "HandleZRLE24Down\n");
 			appData.fileActive = False;
 			SendFramebufferUpdateRequest(0, 0, 1, 1, False);
 		} else {
-//fprintf(stderr, "CFX: A\n");
+/*fprintf(stderr, "CFX: A\n"); */
 			CheckFileXfer();
 		}
 	}
@@ -3473,7 +3531,7 @@ static void CopyImageToScreen(int x, int y, int w, int h) {
 #include "corre.c"
 #include "hextile.c"
 #include "zlib.c"
-//
+
 #ifdef TURBOVNC
 #undef FillRectangle
 #define FillRectangle turbovnc_FillRectangle
@@ -3482,7 +3540,7 @@ static void CopyImageToScreen(int x, int y, int w, int h) {
 #else
 #include "tight.c"
 #endif
-//
+
 #include "zrle.c"
 #undef BPP
 
@@ -3491,7 +3549,7 @@ static void CopyImageToScreen(int x, int y, int w, int h) {
 #include "corre.c"
 #include "hextile.c"
 #include "zlib.c"
-//
+
 #ifdef TURBOVNC
 #undef FillRectangle
 #define FillRectangle turbovnc_FillRectangle
@@ -3500,7 +3558,7 @@ static void CopyImageToScreen(int x, int y, int w, int h) {
 #else
 #include "tight.c"
 #endif
-//
+
 #include "zrle.c"
 #define REALBPP 15
 #include "zrle.c"
@@ -3511,7 +3569,7 @@ static void CopyImageToScreen(int x, int y, int w, int h) {
 #include "corre.c"
 #include "hextile.c"
 #include "zlib.c"
-//
+
 #ifdef TURBOVNC
 #undef FillRectangle
 #define FillRectangle turbovnc_FillRectangle
@@ -3520,7 +3578,7 @@ static void CopyImageToScreen(int x, int y, int w, int h) {
 #else
 #include "tight.c"
 #endif
-//
+
 #include "zrle.c"
 #define REALBPP 24
 #include "zrle.c"
@@ -3546,7 +3604,7 @@ ReadConnFailedReason(void)
 		reasonLen = Swap32IfLE(reasonLen);
 		if ((reason = malloc(reasonLen)) != NULL &&
 		    ReadFromRFBServer(reason, reasonLen)) {
-			int len = reasonLen < sizeof(msgbuf) - 10 ? (int) reasonLen : sizeof(msgbuf) - 10;
+			int len = (int) reasonLen < sizeof(msgbuf) - 10 ? (int) reasonLen : sizeof(msgbuf) - 10;
 			sprintf(msgbuf,"VNC connection failed: %.*s\n", len, reason);
 			wmsg(msgbuf, 1);
 			free(reason);

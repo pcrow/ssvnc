@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <unistd.h>
 #include <errno.h>
 
 /* rename accept something else while we do the includes: */
@@ -61,7 +62,7 @@ int accept(int s, struct sockaddr *addr, socklen_t *addrlen) {
 		reject = 1;
 	}
 	if (maxt > 0 && time(NULL) > t_start + maxt) {
-		if (db) fprintf(stderr, "rejecting extra accept: too late: %d > %d\r\n", time(NULL) - t_start, maxt);
+		if (db) fprintf(stderr, "rejecting extra accept: too late: %d > %d\r\n", (int) (time(NULL) - t_start), maxt);
 		reject = 1;
 	}
 	if (reject) {

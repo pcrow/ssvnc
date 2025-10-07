@@ -50,12 +50,14 @@ void
 ScaleDialogDone(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
 	scaleDialogDone = True;
+	if (w || event || params || num_params) {}
 }
 
 void
 EscapeDialogDone(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
 	escapeDialogDone = True;
+	if (w || event || params || num_params) {}
 }
 
 void dialog_over(Widget wid) {
@@ -210,6 +212,7 @@ void
 YCropDialogDone(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
 	ycropDialogDone = True;
+	if (w || event || params || num_params) {}
 }
 
 char *
@@ -255,6 +258,7 @@ void
 ScbarDialogDone(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
 	scbarDialogDone = True;
+	if (w || event || params || num_params) {}
 }
 
 char *
@@ -300,6 +304,7 @@ void
 ScaleNDialogDone(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
 	scaleNDialogDone = True;
+	if (w || event || params || num_params) {}
 }
 
 char *
@@ -346,6 +351,7 @@ void
 QualityDialogDone(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
 	qualityDialogDone = True;
+	if (w || event || params || num_params) {}
 }
 
 char *
@@ -391,6 +397,7 @@ void
 CompressDialogDone(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
 	compressDialogDone = True;
+	if (w || event || params || num_params) {}
 }
 
 char *
@@ -440,6 +447,7 @@ void
 ServerDialogDone(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
 	serverDialogDone = True;
+	if (w || event || params || num_params) {}
 }
 
 char *
@@ -464,7 +472,9 @@ DoServerDialog()
 	} else {
 		xtmove(pshell);
 	}
-	//dialog_input(pshell);
+#if 0
+	dialog_input(pshell);
+#endif
 	wm_delete(pshell, "ServerDialogDone()");
 
 	serverDialogDone = False;
@@ -485,6 +495,7 @@ void
 UserDialogDone(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
 	userDialogDone = True;
+	if (w || event || params || num_params) {}
 }
 
 char *
@@ -509,7 +520,9 @@ DoUserDialog()
 	} else {
 		xtmove(pshell);
 	}
-	//dialog_input(pshell);
+#if 0
+	dialog_input(pshell);
+#endif
 	wm_delete(pshell, "UserDialogDone()");
 
 	userDialogDone = False;
@@ -527,10 +540,10 @@ DoUserDialog()
 }
 
 void
-PasswordDialogDone(Widget w, XEvent *event, String *params,
-		   Cardinal *num_params)
+PasswordDialogDone(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
 	passwordDialogDone = True;
+	if (w || event || params || num_params) {}
 }
 
 char *
@@ -555,7 +568,9 @@ DoPasswordDialog()
 	} else {
 		xtmove(pshell);
 	}
-	//dialog_input(pshell);
+#if 0
+	dialog_input(pshell);
+#endif
 	wm_delete(pshell, "PasswordDialogDone()");
 
 	passwordDialogDone = False;

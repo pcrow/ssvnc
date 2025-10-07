@@ -442,7 +442,7 @@ SetupBGR233Map()
 	if (!exactBGR233[i] &&
 	    XAllocColor(dpy, cmap, &cmapEntry[i])) {
 
-	  if (cmapEntry[i].pixel == i) {
+	  if ((long) cmapEntry[i].pixel == i) {
 
 	    shared[i] = True; /* probably shared */
 
@@ -533,7 +533,7 @@ SetupBGR565Map(unsigned long red_mask, unsigned long green_mask, unsigned long b
 {
   int r, g, b;
   int r2, g2, b2;
-  long i, idx;
+  long idx;
   int cnt = 0;
   unsigned long pixel = 0;
 
@@ -570,12 +570,14 @@ SetupBGR565Map(unsigned long red_mask, unsigned long green_mask, unsigned long b
 		} else {
 			idx = (b<<bs) | (g<<gs) | (r<<rs);
 		}
-		if (0) fprintf(stderr, "cnt: %5d idx: %5d pixel: 0x%08x\n", cnt, idx, pixel);
+		if (0) fprintf(stderr, "cnt: %5d idx: %lu pixel: 0x%08x\n", cnt, idx, (unsigned int) pixel);
 		BGR565ToPixel[idx] = pixel;
 		cnt++;
 	}
       }
     }
+	green_mask = 0;
+	blue_mask = 0;
 }
 
 

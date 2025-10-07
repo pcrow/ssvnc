@@ -134,7 +134,7 @@ Bool HandleXCursor(int xhot, int yhot, int width, int height)
     XQueryBestCursor(dpy, dr, width, height, &wret, &hret);
   }
 
-  if (width * height == 0 || wret < width || hret < height) {
+  if (width * height == 0 || (int) wret < width || (int) hret < height) {
     /* Free resources */
     if (buf != NULL)
       free(buf);
@@ -149,7 +149,7 @@ Bool HandleXCursor(int xhot, int yhot, int width, int height)
   fg.green = (unsigned short)colors.foreGreen << 8 | colors.foreGreen;
   fg.blue  = (unsigned short)colors.foreBlue  << 8 | colors.foreBlue;
 
-  for (i = 0; i < bytesData * 2; i++)
+  for (i = 0; (size_t) i < bytesData * 2; i++)
     buf[i] = (char)_reverse_byte[(int)buf[i] & 0xFF];
 
   source = XCreateBitmapFromData(dpy, dr, buf, width, height);
@@ -363,7 +363,7 @@ Bool HandleCursorPos(int x, int y)
 	if (x < 0) x = 0;
 	if (y < 0) y = 0;
 
-	//fprintf(stderr, "xy: %d %d\n", x, y);
+	/* fprintf(stderr, "xy: %d %d\n", x, y); */
 
 	if (x >= si.framebufferWidth) {
 		x = si.framebufferWidth - 1;
@@ -505,7 +505,7 @@ extern int XError_ign;
 
 static void SoftCursorCopyArea(int oper) {
 	int x, y, w, h;
-	int xs, ys, ws, hs;
+	int xs = 0, ys = 0, ws = 0, hs = 0;
 	static int scale_saved = 0, ss_w, ss_h;
 	int db = 0;
 
@@ -531,7 +531,6 @@ static void SoftCursorCopyArea(int oper) {
 	}
 
 	if (image_scale != NULL && scale_x > 0) {
-		int i, t = 1;
 		xs = (int) (x * scale_factor_x);
 		ys = (int) (y * scale_factor_y);
 		ws = scale_round(w, scale_factor_x);

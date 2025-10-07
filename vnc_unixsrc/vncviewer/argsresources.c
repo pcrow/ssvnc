@@ -896,6 +896,12 @@ static XtResource appDataResourceList[] = {
 #endif
 #endif
 
+  {"noipv4", "noipv4", XtRBool, sizeof(Bool),
+   XtOffsetOf(AppData, noipv4), XtRImmediate, (XtPointer) False},
+
+  {"noipv6", "noipv6", XtRBool, sizeof(Bool),
+   XtOffsetOf(AppData, noipv6), XtRImmediate, (XtPointer) False},
+
   {"sendClipboard", "SendClipboard", XtRBool, sizeof(Bool),
    XtOffsetOf(AppData, sendClipboard), XtRImmediate, (XtPointer) False},
 
@@ -984,7 +990,9 @@ XrmOptionDescRec cmdLineOptions[] = {
   {"-sendalways",    "*sendAlways",         XrmoptionNoArg,  "True"},
   {"-recvtext",      "*recvText",           XrmoptionSepArg, 0},
   {"-pipeline",      "*pipelineUpdates",    XrmoptionNoArg,  "True"},
-  {"-nopipeline",    "*pipelineUpdates",    XrmoptionNoArg,  "False"}
+  {"-nopipeline",    "*pipelineUpdates",    XrmoptionNoArg,  "False"},
+  {"-noipv4",        "*noipv4",             XrmoptionNoArg,  "True"},
+  {"-noipv6",        "*noipv6",             XrmoptionNoArg,  "True"}
 };
 
 int numCmdLineOptions = XtNumber(cmdLineOptions);
@@ -1401,6 +1409,10 @@ usage(void)
 	  "                    specify as many as you need on the command line.  For\n"
 	  "                    example, -env SSVNC_MULTIPLE_LISTEN=MAX:5 -env EDITOR=vi\n"
 	  "\n"
+	  "     -noipv6        Disable all IPv6 sockets.  Same as VNCVIEWER_NO_IPV6=1.\n"
+	  "\n"
+	  "     -noipv4        Disable all IPv4 sockets.  Same as VNCVIEWER_NO_IPV4=1.\n"
+	  "\n"
 	  "     -printres      Print out the Ssvnc X resources (appdefaults) and then exit\n"  
 	  "                    You can save them to a file and customize them (e.g. the\n"  
 	  "                    keybindings and Popup menu)  Then point to the file via\n"  
@@ -1541,8 +1553,7 @@ extern int saw_appshare;
 void
 GetArgsAndResources(int argc, char **argv)
 {
-	int i;
-	char *vncServerName, *colonPos;
+	char *vncServerName = NULL, *colonPos, *bracketPos;
 	int len, portOffset;
 	int disp;
 
@@ -1651,6 +1662,13 @@ GetArgsAndResources(int argc, char **argv)
 		appData.pipelineUpdates = False;
 	}
 
+	if (getenv("VNCVIEWER_NO_IPV4")) {
+		appData.noipv4 = True;
+	}
+	if (getenv("VNCVIEWER_NO_IPV6")) {
+		appData.noipv6 = True;
+	}
+
 	if (appData.useBGR233 && appData.useBGR565) {
 		appData.useBGR233 = 0;
 	}
@@ -1729,7 +1747,8 @@ GetArgsAndResources(int argc, char **argv)
 		exit(1);
 	}
 
-	colonPos = strchr(vncServerName, ':');
+	colonPos = strrchr(vncServerName, ':');
+	bracketPos = strrchr(vncServerName, ']');
 	if (strstr(vncServerName, "exec=") == vncServerName) {
 		/* special exec-external-command case */
 		strcpy(vncServerHost, vncServerName);
@@ -1742,7 +1761,13 @@ GetArgsAndResources(int argc, char **argv)
 		/* No colon -- use default port number */
 		strcpy(vncServerHost, vncServerName);
 		vncServerPort = SERVER_PORT_OFFSET;
+	} else if (bracketPos != NULL && colonPos < bracketPos) {
+		strcpy(vncServerHost, vncServerName);
+		vncServerPort = SERVER_PORT_OFFSET;
 	} else {
+		if (colonPos > vncServerName && *(colonPos - 1) == ':') {
+			colonPos--;
+		}
 		memcpy(vncServerHost, vncServerName, colonPos - vncServerName);
 		vncServerHost[colonPos - vncServerName] = '\0';
 		len = strlen(colonPos + 1);
@@ -1753,7 +1778,7 @@ GetArgsAndResources(int argc, char **argv)
 			len--;
 			portOffset = 0;
 		}
-		if (!len || strspn(colonPos + 1, "0123456789") != len) {
+		if (!len || strspn(colonPos + 1, "0123456789") != (size_t) len) {
 			usage();
 		}
 #if 0

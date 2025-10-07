@@ -74,9 +74,11 @@ extern int endianTest;
 #define TVNC_SAMPOPT 4
 enum {TVNC_1X=0, TVNC_4X, TVNC_2X, TVNC_GRAY};
 
+#if 0
 static const char *subsampLevel2str[TVNC_SAMPOPT] = {
   "1X", "4X", "2X", "Gray"
 };
+#endif
 #ifdef TURBOVNC
 #define rfbTightNoZlib 0x0A
 #define rfbTurboVncVendor "TRBO"
@@ -89,7 +91,9 @@ static const char *subsampLevel2str[TVNC_SAMPOPT] = {
 #endif
 
 /* for debugging width, height, etc */
-//#define XtVaSetValues printf("%s:%d\n", __FILE__, __LINE__); XtVaSetValues
+#if 0
+#define XtVaSetValues printf("%s:%d\n", __FILE__, __LINE__); XtVaSetValues
+#endif
 
 
 /* argsresources.c */
@@ -180,6 +184,9 @@ typedef struct {
 	String subsampString;
 	int subsampLevel;
 	Bool doubleBuffer;
+
+	Bool noipv4;
+	Bool noipv6;
 
 } AppData;
 
@@ -420,9 +427,12 @@ extern Bool ReadFromRFBServer(char *out, unsigned int n);
 extern Bool WriteExact(int sock, char *buf, int n);
 extern int FindFreeTcpPort(void);
 extern int ListenAtTcpPort(int port);
-extern int ConnectToTcpAddr(unsigned int host, int port);
+extern int ListenAtTcpPort6(int port);
+extern int dotted_ip(char *host, int partial);
+extern int ConnectToTcpAddr(const char *hostname, int port);
 extern int ConnectToUnixSocket(char *file);
 extern int AcceptTcpConnection(int listenSock);
+extern int AcceptTcpConnection6(int listenSock);
 extern Bool SetNonBlocking(int sock);
 extern Bool SetNoDelay(int sock);
 extern Bool SocketPair(int fd[2]);

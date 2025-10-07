@@ -44,8 +44,8 @@ ARCHIVE = $(JSRC)/ultraftp.jar
 
 config:
 	sh -c 'type xmkmf'
-	sh -c 'type javac'
-	sh -c 'type jar'
+	if [ "X$(JSRC)" != "X" ]; then sh -c 'type javac'; fi
+	if [ "X$(JSRC)" != "X" ]; then sh -c 'type jar'; fi
 	@echo
 	cd $(VSRC)/libvncauth; pwd; xmkmf
 	cd $(VSRC)/vncviewer;  pwd; xmkmf
@@ -55,13 +55,13 @@ config:
 all:
 	cd $(VSRC)/libvncauth; $(MAKE)
 	cd $(VSRC)/vncviewer;  $(MAKE)
-	cd $(JSRC); $(MAKE)
+	if [ "X$(JSRC)" != "X" ]; then cd $(JSRC); $(MAKE); fi
 	cd $(PSRC); $(MAKE)
 
 clean:
 	cd $(VSRC)/libvncauth; $(MAKE) clean
 	cd $(VSRC)/vncviewer;  $(MAKE) clean
-	cd $(JSRC); $(MAKE) clean
+	if [ "X$(JSRC)" != "X" ]; then cd $(JSRC); $(MAKE) clean; fi
 	cd $(PSRC); $(MAKE) clean
 
 install: all
@@ -73,7 +73,7 @@ install: all
 	cp -p $(LIMACC) $(ROOT)$(PREFIX)/$(LIB)
 	cp -p $(ULTDSM) $(ROOT)$(PREFIX)/$(LIB)
 	cp -pR scripts/* $(ROOT)$(PREFIX)/$(LIB)
-	cp -p $(ARCHIVE) $(ROOT)$(PREFIX)/$(LIB)/util
+	if [ "X$(JSRC)" != "X" ]; then cp -p $(ARCHIVE) $(ROOT)$(PREFIX)/$(LIB)/util; fi
 	cp -p $(MAN)/man1/ssvnc.1 $(ROOT)$(PREFIX)/$(MANDIR)/man1
 	./wr_tool $(ROOT)$(PREFIX)/$(BIN)/ssvnc  $(PREFIX)/$(LIB)/ssvnc
 	./wr_tool $(ROOT)$(PREFIX)/$(BIN)/tsvnc  $(PREFIX)/$(LIB)/tsvnc

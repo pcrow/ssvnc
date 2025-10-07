@@ -24,6 +24,13 @@ then run ssvnc, ssvncviewer, read manpages etc.
 PREFIX is set to the destination install directory.  root permission
 (e.g. sudo) may be needed to install into /usr/local, /usr, etc.
 
+To skip the Java applet jar for the ultravnc filetransfer helper set
+JSRC to the null string:
+
+	make JSRC="" ...
+
+for all of the make commands.
+
 
 UNPACKING:
 ---------
@@ -105,6 +112,25 @@ Here is a 1-liner for Solaris 10 (assumes libjpeg in /usr/local):
 
 	env PATH=/usr/ccs/bin:/usr/sfw/bin:$PATH CC=gcc CCOPTIONS='' CPP_SSL='-I/usr/sfw/include' LD_SSL='-L/usr/sfw/lib' gmake -e config all
 
+
+TURBOVNC/TURBOJPEG:
+------------------
+
+To build with the turbovnc/turbojpeg support described here:
+
+	http://www.virtualgl.org/
+
+you can do something like this:
+
+make config
+make EXTRA_LDOPTIONS='-L/some/place/turbojpeg -Xlinker --rpath=/some/place/turbojpeg -lturbojpeg' CCOPTIONS=-DTURBOVNC all
+make PREFIX=/other/place install
+
+This requires that you download the libturbojpeg.so library:
+
+	http://sourceforge.net/project/showfiles.php?group_id=117509&package_id=166100
+
+and refer to the directory you put it in the EXTRA_LDOPTIONS.
 
 
 INSTALLING:

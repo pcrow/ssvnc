@@ -21,12 +21,14 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <errno.h>
 
 int db = 0;
 
 int getpeername(int s, void *name, void* namelen) {
 	if (getenv("UNWRAP_DEBUG")) db = 1;
+	if (s || name || namelen) {}
 	if (db) {
 		fprintf(stderr, "unwrap.so: getpeername() returning -1 & ENOTSOCK\n");
 		fflush(stderr);
@@ -37,6 +39,7 @@ int getpeername(int s, void *name, void* namelen) {
 
 int hosts_access0(void *request) {
 	if (getenv("UNWRAP_DEBUG")) db = 1;
+	if (request) {}
 	if (db) {
 		fprintf(stderr, "unwrap.so: hosts_access() returning 1\n");
 		fflush(stderr);

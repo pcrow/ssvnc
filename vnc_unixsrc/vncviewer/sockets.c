@@ -22,6 +22,7 @@
  */
 
 #include <unistd.h>
+#include <time.h>
 #include <sys/socket.h>
 #include <errno.h>
 #include <netinet/in.h>
@@ -33,12 +34,19 @@
 #include <assert.h>
 #include <vncviewer.h>
 
+#ifndef SOL_IPV6
+#ifdef  IPPROTO_IPV6
+#define SOL_IPV6 IPPROTO_IPV6
+#endif
+#endif
+
 /* Solaris (sysv?) needs INADDR_NONE */
 #ifndef INADDR_NONE
 #define INADDR_NONE ((in_addr_t) 0xffffffff)
 #endif
 
 void PrintInHex(char *buf, int len);
+extern void printChat(char *, Bool);
 
 Bool errorMessageOnReadFailure = True;
 
@@ -72,11 +80,14 @@ static void
 rfbsockReadyCallback(XtPointer clientData, int *fd, XtInputId *id)
 {
 	rfbsockReady = True;
-//	XtRemoveInput(*id);
+#if 0
+	XtRemoveInput(*id);
+#endif
 	XtRemoveInput(rfbsockId);
 	if (do_xfrsockId) {
 		XtRemoveInput(xfrsockId);
 	}
+	if (clientData || fd || id) {}
 }
 
 static void
@@ -87,6 +98,7 @@ xfrsockReadyCallback(XtPointer clientData, int *fd, XtInputId *id)
 	if (do_rfbsockId) {
 		XtRemoveInput(rfbsockId);
 	}
+	if (clientData || fd || id) {}
 }
 
 
@@ -137,7 +149,7 @@ void CheckFileXfer() {
 		filexfer_listen = -1;
 		return;
 	}
-//fprintf(stderr, "In  CheckFileXfer\n");
+if (0) fprintf(stderr, "In  CheckFileXfer\n");
 
 	if (filexfer_listen >=0) {
 		n = filexfer_listen;
@@ -175,6 +187,7 @@ void CheckFileXfer() {
 				unsigned char hdr[12];
 				unsigned int len;
 				if (db) fprintf(stderr, "try read filexfer...\n");
+				if (hdr || len || i) {}
 #if 1
 				rn = read(n, fxfer, 1*8192);
 if (db) {
@@ -194,7 +207,9 @@ if (db) {
 					close(n);
 					filexfer_sock = -1;
 					last_filexfer = time(NULL);
-					//fprintf(stderr, "last_filexfer-2a: %d\n", last_filexfer);
+#if 0
+					fprintf(stderr, "last_filexfer-2a: %d\n", last_filexfer);
+#endif
 					appData.fileActive = False;
 					SendFramebufferUpdateRequest(0, 0, 1, 1, False);
 					return;
@@ -203,7 +218,9 @@ if (db) {
 					if (db) fprintf(stderr, "\n");
 					bytes += rn;
 					last_filexfer = time(NULL);
-					//fprintf(stderr, "last_filexfer-2b: %d\n", last_filexfer);
+#if 0
+					fprintf(stderr, "last_filexfer-2b: %d\n", last_filexfer);
+#endif
 
 					if (0) {
 						/* WE TRY TO FIX THIS IN THE JAVA NOW */
@@ -222,7 +239,7 @@ if (db) {
 					igot = 1;
 				}
 #else
-				// not working, not always 7 msg type.	
+				/* not working, not always 7 msg type.	*/
 				rn = read(n, hdr, 12);
 				if (db) fprintf(stderr, "filexfer read %d.\n", rn);
 				if (rn == 0) {
@@ -267,8 +284,10 @@ if (db) {
 				if (ok) {
 					grace++;
 					bytes0 = bytes;
-					//fprintf(stderr, "grace: %d\n", grace);
-					// forgot that this is about...
+#if 0
+					fprintf(stderr, "grace: %d\n", grace);
+					/* forgot that this is about... */
+#endif
 					usleep(10 * 1000);
 					continue;
 				}
@@ -278,9 +297,13 @@ if (db) {
 	}
 	if (igot) {
 		last_filexfer = time(NULL);
-		//fprintf(stderr, "last_filexfer-2c: %d\n", last_filexfer);
+#if 0
+		fprintf(stderr, "last_filexfer-2c: %d\n", last_filexfer);
+#endif
 	}
-//fprintf(stderr, "Out CheckFileXfer\n");
+#if 0
+fprintf(stderr, "Out CheckFileXfer\n");
+#endif
 	return;
 }
 
@@ -319,7 +342,7 @@ static void check_term_chat(void) {
 	if (buf[0] != '\0') {
 		SendTextChat(buf);
 	}
-	if (igot >= 0) printChat("Send: ");
+	if (igot >= 0) printChat("Send: ", False);
 }
 
 static time_t time_mark;
@@ -330,7 +353,7 @@ extern double start_time;
 
 void ProcessXtEvents()
 {
-	int y, db = 0;
+	int db = 0;
 	static int dyn = -1;
 	static int chat_was_active = 0;
 	int check_chat = 0;
@@ -350,7 +373,9 @@ void ProcessXtEvents()
 		}
 	}
 
-	//if (0) fprintf(stderr, "ProcessXtEvents: %d  %.4f\n", skip_XtUpdateAll, dnow() - start_time);
+#if 0
+	if (0) fprintf(stderr, "ProcessXtEvents: %d  %.4f\n", skip_XtUpdateAll, dnow() - start_time);
+#endif
 
 	if (skip_XtUpdateAll) {
 		return;
@@ -363,7 +388,6 @@ void ProcessXtEvents()
 		static double last_check = 0.0;
 		double now = dnow();
 		if (now > last_check + 0.75) {
-			//fprintf(stderr, "cwa\n");
 			check_chat = 1;
 			last_check = now;
 		}
@@ -426,12 +450,16 @@ void ProcessXtEvents()
 Bool
 ReadFromRFBServer(char *out, unsigned int n)
 {
-//	double start = dnow(), dn = n;
+#if 0
+	double start = dnow(), dn = n;
+#endif
   if (n <= buffered) {
     memcpy(out, bufoutptr, n);
     bufoutptr += n;
     buffered -= n;
-//fprintf(stderr, "R0: %06d\n", (int) dn);
+#if 0
+fprintf(stderr, "R0: %06d\n", (int) dn);
+#endif
     return True;
   }
 
@@ -470,7 +498,9 @@ ReadFromRFBServer(char *out, unsigned int n)
     memcpy(out, bufoutptr, n);
     bufoutptr += n;
     buffered -= n;
-//fprintf(stderr, "R1: %06d %06d %10.2f KB/sec\n", (int) dn, buffered+n, 1e-3 * (buffered+n)/(dnow() - start));
+#if 0
+fprintf(stderr, "R1: %06d %06d %10.2f KB/sec\n", (int) dn, buffered+n, 1e-3 * (buffered+n)/(dnow() - start));
+#endif
     return True;
 
   } else {
@@ -498,7 +528,9 @@ ReadFromRFBServer(char *out, unsigned int n)
       n -= i;
     }
 
-//fprintf(stderr, "R2: %06d %06d %10.2f KB/sec\n", (int) dn, (int) dn, 1e-3 * (dn)/(dnow() - start));
+#if 0
+fprintf(stderr, "R2: %06d %06d %10.2f KB/sec\n", (int) dn, (int) dn, 1e-3 * (dn)/(dnow() - start));
+#endif
     return True;
   }
 }
@@ -590,47 +622,226 @@ ConnectToUnixSocket(char *file) {
 	return sock;
 }
 
+char *ipv6_getipaddr(struct sockaddr *paddr, int addrlen) {
+#if defined(AF_INET6) && defined(NI_NUMERICHOST)
+        char name[200];
+	if (appData.noipv6) {
+                return strdup("unknown");
+        }
+        if (getnameinfo(paddr, addrlen, name, sizeof(name), NULL, 0, NI_NUMERICHOST) == 0) {
+                return strdup(name);
+        }
+#endif
+	if (paddr || addrlen) {}
+        return strdup("unknown");
+}
+
+char *ipv6_getnameinfo(struct sockaddr *paddr, int addrlen) {
+#if defined(AF_INET6)
+        char name[200];
+	if (appData.noipv6) {
+                return strdup("unknown");
+        }
+        if (getnameinfo(paddr, addrlen, name, sizeof(name), NULL, 0, 0) == 0) {
+                return strdup(name);
+        }
+#endif
+	if (paddr || addrlen) {}
+        return strdup("unknown");
+}
+
+int dotted_ip(char *host, int partial) {
+	int len, dots = 0;
+	char *p = host;
+
+	if (!host) {
+		return 0;
+	}
+
+	if (!isdigit((unsigned char) host[0])) {
+		return 0;
+	}
+
+	len = strlen(host);
+	if (!partial && !isdigit((unsigned char) host[len-1])) {
+		return 0;
+	}
+
+	while (*p != '\0') {
+		if (*p == '.') dots++;
+		if (*p == '.' || isdigit((unsigned char) (*p))) {
+			p++;
+			continue;
+		}
+		return 0;
+	}
+	if (!partial && dots != 3) {
+		return 0;
+	}
+	return 1;
+}
 
 /*
  * ConnectToTcpAddr connects to the given TCP port.
  */
 
-int
-ConnectToTcpAddr(unsigned int host, int port)
-{
-  int sock;
-  struct sockaddr_in addr;
-  int one = 1;
+int ConnectToTcpAddr(const char *hostname, int port) {
+	int sock = -1, one = 1;
+	unsigned int host;
+	struct sockaddr_in addr;
 
-  memset(&addr, 0, sizeof(struct sockaddr_in));
+	if (appData.noipv4) {
+		fprintf(stderr, "ipv4 is disabled via VNCVIEWER_NO_IPV4/-noipv4.\n");
+		goto try6;
+	}
 
-  addr.sin_family = AF_INET;
-  addr.sin_port = htons(port);
-  addr.sin_addr.s_addr = host;
+	if (!StringToIPAddr(hostname, &host)) {
+		fprintf(stderr, "Could not convert '%s' to ipv4 host address.\n", hostname);
+		goto try6;
+	}
 
-  sock = socket(AF_INET, SOCK_STREAM, 0);
-  if (sock < 0) {
-    fprintf(stderr,programName);
-    perror(": ConnectToTcpAddr: socket");
-    return -1;
-  }
+	memset(&addr, 0, sizeof(struct sockaddr_in));
 
-  if (connect(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-    fprintf(stderr,programName);
-    perror(": ConnectToTcpAddr: connect");
-    close(sock);
-    return -1;
-  }
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons(port);
+	addr.sin_addr.s_addr = host;
 
-  if (setsockopt(sock, IPPROTO_TCP, TCP_NODELAY,
-		 (char *)&one, sizeof(one)) < 0) {
-    fprintf(stderr,programName);
-    perror(": ConnectToTcpAddr: setsockopt");
-    close(sock);
-    return -1;
-  }
+	sock = socket(AF_INET, SOCK_STREAM, 0);
+	if (sock < 0) {
+		perror("ConnectToTcpAddr[ipv4]: socket");
+		sock = -1;
+		goto try6;
+	}
 
-  return sock;
+	if (connect(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+		perror("ConnectToTcpAddr[ipv4]: connect");
+		close(sock);
+		sock = -1;
+		goto try6;
+	}
+
+	if (setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, (char *)&one, sizeof(one)) < 0) {
+		perror("ConnectToTcpAddr[ipv4]: setsockopt");
+		close(sock);
+		sock = -1;
+		goto try6;
+	}
+
+	if (sock >= 0) {
+		return sock;
+	}
+
+	try6:
+
+#ifdef AF_INET6
+	if (!appData.noipv6) {
+		int err;
+		struct addrinfo *ai;
+		struct addrinfo hints;
+		char service[32], *host2, *q;
+
+		fprintf(stderr, "Trying ipv6 connection to '%s'\n", hostname);
+
+		memset(&hints, 0, sizeof(hints));
+		sprintf(service, "%d", port);
+
+		hints.ai_family = AF_UNSPEC;
+		hints.ai_socktype = SOCK_STREAM;
+#ifdef AI_ADDRCONFIG
+		hints.ai_flags |= AI_ADDRCONFIG;
+#endif
+#ifdef AI_NUMERICSERV
+		hints.ai_flags |= AI_NUMERICSERV;
+#endif
+		if (!strcmp(hostname, "localhost")) {
+			host2 = strdup("::1");
+		} else if (!strcmp(hostname, "127.0.0.1")) {
+			host2 = strdup("::1");
+		} else if (hostname[0] == '[') {
+			host2 = strdup(hostname+1);
+		} else {
+			host2 = strdup(hostname);
+		}
+		q = strrchr(host2, ']');
+		if (q) {
+			*q = '\0';
+		}
+
+		err = getaddrinfo(host2, service, &hints, &ai);
+		if (err != 0) {
+			fprintf(stderr, "ConnectToTcpAddr[ipv6]: getaddrinfo[%d]: %s\n", err, gai_strerror(err));
+			usleep(100 * 1000);
+			err = getaddrinfo(host2, service, &hints, &ai);
+		}
+		free(host2);
+
+		if (err != 0) {
+			fprintf(stderr, "ConnectToTcpAddr[ipv6]: getaddrinfo[%d]: %s (2nd try)\n", err, gai_strerror(err));
+		} else {
+			struct addrinfo *ap = ai;
+			while (ap != NULL) {
+				int fd = -1;
+				char *s = ipv6_getipaddr(ap->ai_addr, ap->ai_addrlen);
+				if (s) {
+					fprintf(stderr, "ConnectToTcpAddr[ipv6]: trying ip-addr: '%s'\n", s);
+					free(s);
+				}
+				if (appData.noipv4) {
+					struct sockaddr_in6 *s6ptr;
+					if (ap->ai_family != AF_INET6) {
+						fprintf(stderr, "ConnectToTcpAddr[ipv6]: skipping AF_INET address under VNCVIEWER_NO_IPV4/-noipv4\n");
+						ap = ap->ai_next;
+						continue;
+					}
+#ifdef IN6_IS_ADDR_V4MAPPED
+					s6ptr = (struct sockaddr_in6 *) ap->ai_addr;
+					if (IN6_IS_ADDR_V4MAPPED(&(s6ptr->sin6_addr))) {
+						fprintf(stderr, "ConnectToTcpAddr[ipv6]: skipping V4MAPPED address under VNCVIEWER_NO_IPV4/-noipv4\n");
+						ap = ap->ai_next;
+						continue;
+					}
+#endif
+				}
+
+				fd = socket(ap->ai_family, ap->ai_socktype, ap->ai_protocol);
+				if (fd == -1) {
+					perror("ConnectToTcpAddr[ipv6]: socket");
+				} else {
+					int dmsg = 0;
+					int res = connect(fd, ap->ai_addr, ap->ai_addrlen);
+#if defined(SOL_IPV6) && defined(IPV6_V6ONLY)
+					if (res != 0) {
+						int zero = 0;
+						perror("ConnectToTcpAddr[ipv6]: connect");
+						dmsg = 1;
+						if (setsockopt(fd, SOL_IPV6, IPV6_V6ONLY, (char *)&zero, sizeof(zero)) == 0) {
+							fprintf(stderr, "ConnectToTcpAddr[ipv6]: trying again with IPV6_V6ONLY=0\n");
+							res = connect(fd, ap->ai_addr, ap->ai_addrlen);
+							dmsg = 0;
+						}
+					}
+#endif
+					if (res == 0) {
+						fprintf(stderr, "ConnectToTcpAddr[ipv6]: connect OK\n");
+						sock = fd;
+						break;
+					} else {
+						if (!dmsg) perror("ConnectToTcpAddr[ipv6]: connect");
+						close(fd);
+					}
+				}
+				ap = ap->ai_next;
+			}
+			freeaddrinfo(ai);
+		}
+		if (sock >= 0 && setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, (char *)&one, sizeof(one)) < 0) {
+			perror("ConnectToTcpAddr: setsockopt");
+			close(sock);
+			sock = -1;
+		}
+	}
+#endif
+	return sock;
 }
 
 Bool SocketPair(int fd[2]) {
@@ -658,31 +869,31 @@ Bool SetNoDelay(int sock) {
 int
 FindFreeTcpPort(void)
 {
-  int sock, port;
-  struct sockaddr_in addr;
+	int sock, port;
+	struct sockaddr_in addr;
 
-  memset(&addr, 0, sizeof(struct sockaddr_in));
+	memset(&addr, 0, sizeof(struct sockaddr_in));
 
-  addr.sin_family = AF_INET;
-  addr.sin_addr.s_addr = INADDR_ANY;
+	addr.sin_family = AF_INET;
+	addr.sin_addr.s_addr = INADDR_ANY;
 
-  sock = socket(AF_INET, SOCK_STREAM, 0);
-  if (sock < 0) {
-    fprintf(stderr,programName);
-    perror(": FindFreeTcpPort: socket");
-    return 0;
-  }
+	sock = socket(AF_INET, SOCK_STREAM, 0);
+	if (sock < 0) {
+		fprintf(stderr,programName);
+		perror(": FindFreeTcpPort: socket");
+		return 0;
+	}
 
-  for (port = TUNNEL_PORT_OFFSET + 99; port > TUNNEL_PORT_OFFSET; port--) {
-    addr.sin_port = htons((unsigned short)port);
-    if (bind(sock, (struct sockaddr *)&addr, sizeof(addr)) == 0) {
-      close(sock);
-      return port;
-    }
-  }
+	for (port = TUNNEL_PORT_OFFSET + 99; port > TUNNEL_PORT_OFFSET; port--) {
+		addr.sin_port = htons((unsigned short)port);
+		if (bind(sock, (struct sockaddr *)&addr, sizeof(addr)) == 0) {
+			close(sock);
+			return port;
+		}
+	}
 
-  close(sock);
-  return 0;
+	close(sock);
+	return 0;
 }
 
 
@@ -692,53 +903,108 @@ FindFreeTcpPort(void)
 
 int use_loopback = 0;
 
-int
-ListenAtTcpPort(int port)
-{
-  int sock;
-  struct sockaddr_in addr;
-  int one = 1;
+int ListenAtTcpPort(int port) {
+	int sock;
+	struct sockaddr_in addr;
+	int one = 1;
 
-  memset(&addr, 0, sizeof(struct sockaddr_in));
+	if (appData.noipv4) {
+		fprintf(stderr, "ipv4 is disabled via VNCVIEWER_NO_IPV4/-noipv4.\n");
+		return -1;
+	}
 
-  addr.sin_family = AF_INET;
-  addr.sin_port = htons(port);
-  addr.sin_addr.s_addr = INADDR_ANY;
+	memset(&addr, 0, sizeof(struct sockaddr_in));
+
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons(port);
+	addr.sin_addr.s_addr = INADDR_ANY;
 
 	if (getenv("VNCVIEWER_LISTEN_LOCALHOST") || use_loopback) {
 		addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 	}
 
-  sock = socket(AF_INET, SOCK_STREAM, 0);
-  if (sock < 0) {
-    fprintf(stderr,programName);
-    perror(": ListenAtTcpPort: socket");
-    return -1;
-  }
+	sock = socket(AF_INET, SOCK_STREAM, 0);
+	if (sock < 0) {
+		perror("ListenAtTcpPort: socket");
+		return -1;
+	}
 
-  if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,
-		 (const char *)&one, sizeof(one)) < 0) {
-    fprintf(stderr,programName);
-    perror(": ListenAtTcpPort: setsockopt");
-    close(sock);
-    return -1;
-  }
+	if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (const char *)&one, sizeof(one)) < 0) {
+		perror("ListenAtTcpPort: setsockopt");
+		close(sock);
+		return -1;
+	}
 
-  if (bind(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-    fprintf(stderr,programName);
-    perror(": ListenAtTcpPort: bind");
-    close(sock);
-    return -1;
-  }
+	if (bind(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+		perror("ListenAtTcpPort: bind");
+		close(sock);
+		return -1;
+	}
 
-  if (listen(sock, 32) < 0) {
-    fprintf(stderr,programName);
-    perror(": ListenAtTcpPort: listen");
-    close(sock);
-    return -1;
-  }
+	if (listen(sock, 32) < 0) {
+		perror("ListenAtTcpPort: listen");
+		close(sock);
+		return -1;
+	}
 
-  return sock;
+	return sock;
+}
+
+int ListenAtTcpPort6(int port) {
+	int sock = -1;
+#ifdef AF_INET6
+	struct sockaddr_in6 sin;
+	int one = 1;
+
+	if (appData.noipv6) {
+		fprintf(stderr, "ipv6 is disabled via VNCVIEWER_NO_IPV6/-noipv6.\n");
+		return -1;
+	}
+
+	sock = socket(AF_INET6, SOCK_STREAM, 0);
+	if (sock < 0) {
+		perror("ListenAtTcpPort[ipv6]: socket");
+		return -1;
+	}
+
+	if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char *)&one, sizeof(one)) < 0) {
+		perror("ListenAtTcpPort[ipv6]: setsockopt1");
+		close(sock);
+		return -1;
+	}
+
+#if defined(SOL_IPV6) && defined(IPV6_V6ONLY)
+	if (setsockopt(sock, SOL_IPV6, IPV6_V6ONLY, (char *)&one, sizeof(one)) < 0) {
+		perror("ListenAtTcpPort[ipv6]: setsockopt2");
+		close(sock);
+		return -1;
+	}
+#endif
+
+	memset((char *)&sin, 0, sizeof(sin));
+	sin.sin6_family = AF_INET6;
+	sin.sin6_port   = htons(port);
+	sin.sin6_addr   = in6addr_any;
+
+	if (getenv("VNCVIEWER_LISTEN_LOCALHOST") || use_loopback) {
+		sin.sin6_addr = in6addr_loopback;
+	}
+
+	if (bind(sock, (struct sockaddr *) &sin, sizeof(sin)) < 0) {
+		perror("ListenAtTcpPort[ipv6]: bind");
+		close(sock);
+		return -1;
+	}
+
+	if (listen(sock, 32) < 0) {
+		perror("ListenAtTcpPort[ipv6]: listen");
+		close(sock);
+		return -1;
+	}
+
+#endif
+	if (port) {}
+	return sock;
 }
 
 
@@ -746,31 +1012,67 @@ ListenAtTcpPort(int port)
  * AcceptTcpConnection accepts a TCP connection.
  */
 
-int
-AcceptTcpConnection(int listenSock)
-{
-  int sock;
-  struct sockaddr_in addr;
-  int addrlen = sizeof(addr);
-  int one = 1;
+int AcceptTcpConnection(int listenSock) {
+	int sock;
+	struct sockaddr_in addr;
+	int addrlen = sizeof(addr);
+	int one = 1;
 
-  sock = accept(listenSock, (struct sockaddr *) &addr, &addrlen);
-  if (sock < 0) {
-    fprintf(stderr,programName);
-    perror(": AcceptTcpConnection: accept");
-    return -1;
-  }
+	sock = accept(listenSock, (struct sockaddr *) &addr, &addrlen);
+	if (sock < 0) {
+		perror("AcceptTcpConnection: accept");
+		return -1;
+	}
 
-  if (setsockopt(sock, IPPROTO_TCP, TCP_NODELAY,
-		 (char *)&one, sizeof(one)) < 0) {
-    fprintf(stderr,programName);
-    perror(": AcceptTcpConnection: setsockopt");
-    close(sock);
-    return -1;
-  }
+	if (setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, (char *)&one, sizeof(one)) < 0) {
+		perror("AcceptTcpConnection: setsockopt");
+		close(sock);
+		return -1;
+	}
 
-  return sock;
+	return sock;
 }
+
+char *accept6_ipaddr = NULL;
+char *accept6_hostname = NULL;
+
+int AcceptTcpConnection6(int listenSock) {
+	int sock = -1;
+#ifdef AF_INET6
+	struct sockaddr_in6 addr;
+	socklen_t addrlen = sizeof(addr);
+	int one = 1;
+	char *name;
+
+	if (appData.noipv6) {
+		return -1;
+	}
+
+	sock = accept(listenSock, (struct sockaddr *) &addr, &addrlen);
+	if (sock < 0) {
+		perror("AcceptTcpConnection[ipv6]: accept");
+		return -1;
+	}
+
+	if (setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, (char *)&one, sizeof(one)) < 0) {
+		perror("AcceptTcpConnection[ipv6]: setsockopt");
+		close(sock);
+		return -1;
+	}
+
+	name = ipv6_getipaddr((struct sockaddr *) &addr, addrlen);
+	if (!name) name = strdup("unknown");
+	accept6_ipaddr = name;
+	fprintf(stderr, "AcceptTcpConnection6: ipv6 connection from: '%s'\n", name);
+
+	name = ipv6_getnameinfo((struct sockaddr *) &addr, addrlen);
+	if (!name) name = strdup("unknown");
+	accept6_hostname = name;
+#endif
+	if (listenSock) {}
+	return sock;
+}
+
 
 
 /*
@@ -805,7 +1107,7 @@ StringToIPAddr(const char *str, unsigned int *addr)
 
   *addr = inet_addr(str);
 
-  if (*addr != -1)
+  if (*addr != (unsigned int) -1)
     return True;
 
   hp = gethostbyname(str);
