@@ -303,7 +303,7 @@ zywrle_top:
 
 
 			if(1+w*h*REALBPP/8>buffer_length) {
-				fprintf(stderr, "expected %d bytes, got only %d (%dx%d)\n",1+w*h*REALBPP/8,buffer_length,w,h);
+				fprintf(stderr, "expected %d bytes, got only %ld (%dx%d)\n",1+w*h*REALBPP/8,buffer_length,w,h);
 				return -3;
 			}
 

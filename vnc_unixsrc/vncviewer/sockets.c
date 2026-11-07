@@ -199,7 +199,7 @@ if (db) {
 	}
 	fprintf(stderr, " ?\n");
 }
-				if (0 || db) fprintf(stderr, "filexfer read[%d] %d.\n", icnt, rn);
+				if (0 || db) fprintf(stderr, "filexfer read[%d] %ld.\n", icnt, rn);
 				if (rn < 0) {
 					fprintf(stderr, "filexfer bad read: %d\n", errno);
 					break;
