@@ -51,7 +51,7 @@ XImage *image_scale = NULL;
 
 int image_is_shm = 0;
 
-static Cursor CreateDotCursor();
+static Cursor CreateDotCursor(int which);
 static void CopyBGR233ToScreen(CARD8 *buf, int x, int y, int width,int height);
 static void HandleBasicDesktopEvent(Widget w, XtPointer ptr, XEvent *ev,
 				    Boolean *cont);

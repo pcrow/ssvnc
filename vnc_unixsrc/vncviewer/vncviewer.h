@@ -320,7 +320,7 @@ extern void JumpDown(Widget w, XEvent *event, String *params, Cardinal *num_para
 
 /* listen.c */
 
-extern void listenForIncomingConnections();
+extern void listenForIncomingConnections(int *argc, char **argv, int listenArgIndex);
 
 /* misc.c */
 
