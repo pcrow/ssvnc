@@ -29,7 +29,7 @@
 static void CleanupSignalHandler(int sig);
 static int CleanupXErrorHandler(Display *dpy, XErrorEvent *error);
 static int CleanupXIOErrorHandler(Display *dpy);
-static void CleanupXtErrorHandler(String message);
+static _X_NORETURN void CleanupXtErrorHandler(String message);
 static Bool IconifyNamedWindow(Window w, char *name, Bool undo);
 
 Dimension dpyWidth, dpyHeight;
@@ -433,13 +433,14 @@ CleanupXIOErrorHandler(Display *dpy)
 	return (*defaultXIOErrorHandler)(dpy);
 }
 
-static void
+static _X_NORETURN void
 CleanupXtErrorHandler(String message)
 {
 	fprintf(stderr,"CleanupXtErrorHandler called\n");
 	check_dbg();
 	Cleanup();
 	(*defaultXtErrorHandler)(message);
+        exit(1); // not reached
 }
 
 static void
