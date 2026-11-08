@@ -482,7 +482,7 @@ fprintf(stderr, "R0: %06d\n", (int) dn);
 	    ProcessXtEvents();
 	    i = 0;
 	  } else {
-	    fprintf(stderr,programName);
+	    fprintf(stderr, "%s", programName);
 	    perror(": read");
 	    return False;
 	  }
@@ -514,7 +514,7 @@ fprintf(stderr, "R1: %06d %06d %10.2f KB/sec\n", (int) dn, buffered+n, 1e-3 * (b
 	    ProcessXtEvents();
 	    i = 0;
 	  } else {
-	    fprintf(stderr,programName);
+	    fprintf(stderr, "%s", programName);
 	    perror(": read");
 	    return False;
 	  }
@@ -569,13 +569,13 @@ WriteExact(int sock, char *buf, int n)
 				FD_SET(rfbsock,&fds);
 
 				if (select(rfbsock+1, NULL, &fds, NULL, NULL) <= 0) {
-					fprintf(stderr,programName);
+					fprintf(stderr, "%s", programName);
 					perror(": select");
 					return False;
 				}
 				j = 0;
 			} else {
-				fprintf(stderr,programName);
+				fprintf(stderr, "%s", programName);
 				perror(": write");
 				return False;
 			}
@@ -608,13 +608,13 @@ ConnectToUnixSocket(char *file) {
 
 	sock = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (sock < 0) {
-		fprintf(stderr,programName);
+		fprintf(stderr, "%s", programName);
 		perror(": ConnectToUnixSocket: socket");
 		return -1;
 	}
 
 	if (connect(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-		fprintf(stderr, programName);
+		fprintf(stderr, "%s", programName);
 		perror(": ConnectToUnixSocket: connect");
 		close(sock);
 		return -1;
@@ -880,7 +880,7 @@ FindFreeTcpPort(void)
 
 	sock = socket(AF_INET, SOCK_STREAM, 0);
 	if (sock < 0) {
-		fprintf(stderr,programName);
+		fprintf(stderr, "%s", programName);
 		perror(": FindFreeTcpPort: socket");
 		return 0;
 	}
@@ -1084,7 +1084,7 @@ Bool
 SetNonBlocking(int sock)
 {
   if (fcntl(sock, F_SETFL, O_NONBLOCK) < 0) {
-    fprintf(stderr,programName);
+    fprintf(stderr, "%s", programName);
     perror(": AcceptTcpConnection: fcntl");
     return False;
   }
