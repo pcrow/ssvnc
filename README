@@ -3,16 +3,19 @@ Fork of SSVNC by Preston Crow
 Objective: Make it build and run on Linux with modern C and libraries.
 
 I'm doing this for my own use, but sharing here in case it's useful.  I run
-Gentoo Linux, and the latest OpenSSL 4 release broke this package.  It
-hasn't been maintained, and instead of just adding a patch in
-/etc/portage/patches/..., I decided to make it just work without patches.
+Gentoo Linux, and the latest compilers broke this package.  It hasn't been
+maintained, and instead of just adding a patch in /etc/portage/patches/...,
+I decided to make it just work without patches.
 
 The main thing I want is a simple VNC viewer that works on a minimal system
 (e.g., with twm), and does client-side scalaing for HiDPI displays.  I've
 found ssvnc works well for this, so despite not being maintained, I'm
 making it continue to work instead of finding a replacement.
 
-I'll tag a release as 1.30 when it works for me.
+I merged an openSSL patch from the  old Gentoo ebuild, and I fixed a number
+of the compiler warnings.
+
+It works for me, so this is released as 1.0.30.
 
 =============================================================================
 
