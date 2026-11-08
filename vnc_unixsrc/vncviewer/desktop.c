@@ -27,6 +27,7 @@
 #ifdef MITSHM
 #include <X11/extensions/XShm.h>
 #endif
+#include <X11/XKBlib.h>
 
 #include <X11/cursorfont.h>
 
@@ -1537,9 +1538,9 @@ void releaseAllPressedModifiers(void) {
 	if (debug_release) fprintf(stderr, "into releaseAllPressedModifiers()\n");
 	for (i = 0; i < 256; i++) {
 		if (modifierPressed[i]) {
-			SendKeyEvent(XKeycodeToKeysym(dpy, i, 0), False);
+			SendKeyEvent(XkbKeycodeToKeysym(dpy, i, 0, 0), False);
 			modifierPressed[i] = False;
-			if (debug_release) fprintf(stderr, "releasing[%d] %s\n", i, XKeysymToString(XKeycodeToKeysym(dpy, i, 0)));
+			if (debug_release) fprintf(stderr, "releasing[%d] %s\n", i, XKeysymToString(XkbKeycodeToKeysym(dpy, i, 0, 0)));
 		}
 	}
 }
@@ -2479,7 +2480,7 @@ SendRFBEvent(Widget w, XEvent *ev, String *params, Cardinal *num_params)
 		XLookupString(&ev->xkey, keyname, 256, &ks, NULL);
 
 		if (IsModifierKey(ks)) {
-			ks = XKeycodeToKeysym(dpy, ev->xkey.keycode, 0);
+			ks = XkbKeycodeToKeysym(dpy, ev->xkey.keycode, 0, 0);
 			modifierPressed[ev->xkey.keycode] = (ev->type == KeyPress);
 		}
 
